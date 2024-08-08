@@ -1,0 +1,20 @@
+
+$search("*.txt", "/");
+file := $get(file.txt)
+
+if $date(file.date).
+
+preq := main.c
+out := main.out
+
+debug := $flag 
+
+output:
+    if is $flag(debug) {
+
+    }
+    res := $->build
+    echo $len(res)
+
+build: #thread
+    clang %preq -o %out
