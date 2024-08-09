@@ -14,8 +14,11 @@ typedef enum
     TOKEN_INVALID,
     TOKEN_DOLLAR,
     TOKEN_SFUNC,
+    TOKEN_DOT,
     TOKEN_PREPROC,
     TOKEN_SYMBOL,
+    TOKEN_ASTERISK,
+    TOKEN_DECL,
     TOKEN_OPAREN,
     TOKEN_CPAREN,
     TOKEN_OCURLY,
@@ -23,7 +26,8 @@ typedef enum
     TOKEN_SEMICOLON,
     TOKEN_COLON,
     TOKEN_COMMENT,
-    TOKEN_STRING
+    TOKEN_STRING,
+    TOKEN_ARROW_RIGHT
 } TokenKind;
 
 typedef struct
@@ -43,13 +47,13 @@ typedef struct
 
 typedef struct
 {
-    const char *content;
+    char *content;
     size_t content_len;
     size_t cursor;
     size_t line;
     size_t bol; // beginning of the line
 } Lexer;
 
-size_t lexer_collect_from(char *content, size_t content_len, Token *tokens);
+size_t lexer_collect_from(char *content, size_t content_len, Token **tokens);
 
 #endif // _LEXER_H

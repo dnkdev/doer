@@ -2,11 +2,13 @@
 #include <stdio.h>
 
 #include "lexer.h"
-#include "common.h"
 #include "string.h"
+#include "common.h"
+
+#define CUR l->content[l->cursor]
 
 static const char *token_kind_name(TokenKind name);
-static Lexer lexer_new(const char *content, size_t content_len);
+static Lexer lexer_new(char *content, size_t content_len);
 static Token lexer_next(Lexer *l);
 
 typedef struct
@@ -19,14 +21,15 @@ Literal_Token literal_tokens[] = {
     {.text = "$", .kind = TOKEN_DOLLAR},
     {.text = "(", .kind = TOKEN_OPAREN},
     {.text = ")", .kind = TOKEN_CPAREN},
+    {.text = "*", .kind = TOKEN_ASTERISK},
+    {.text = ".", .kind = TOKEN_DOT},
     {.text = "{", .kind = TOKEN_OCURLY},
     {.text = "}", .kind = TOKEN_CCURLY},
     {.text = ";", .kind = TOKEN_SEMICOLON},
+    {.text = ":=", .kind = TOKEN_DECL},
     {.text = ":", .kind = TOKEN_COLON},
-};
+    {.text = "->", .kind = TOKEN_ARROW_RIGHT}};
 #define literal_tokens_count (sizeof(literal_tokens) / sizeof(literal_tokens[0]))
-
-#define CUR l->content[l->cursor]
 
 static const char *token_kind_name(TokenKind kind)
 {
@@ -36,10 +39,16 @@ static const char *token_kind_name(TokenKind kind)
         return "end token";
     case TOKEN_INVALID:
         return "invalid token";
+    case TOKEN_SFUNC:
+        return "super function token";
     case TOKEN_PREPROC:
         return "preprocessor token";
     case TOKEN_SYMBOL:
         return "symbol token";
+    case TOKEN_ASTERISK:
+        return "asterisk token";
+    case TOKEN_DOT:
+        return "dot token";
     case TOKEN_OPAREN:
         return "open paren token";
     case TOKEN_CPAREN:
@@ -50,17 +59,23 @@ static const char *token_kind_name(TokenKind kind)
         return "close curly token";
     case TOKEN_SEMICOLON:
         return "semicolon token";
+    case TOKEN_COLON:
+        return "colon token";
+    case TOKEN_DECL:
+        return "declaration token";
     case TOKEN_COMMENT:
         return "comment token";
     case TOKEN_STRING:
         return "string token";
+    case TOKEN_ARROW_RIGHT:
+        return "arrow-right token";
     default:
         return "unnamed";
     }
     return NULL;
 }
 
-static Lexer lexer_new(const char *content, size_t content_len)
+static Lexer lexer_new(char *content, size_t content_len)
 {
     Lexer l = {0};
     l.content = content;
@@ -106,6 +121,7 @@ static char lexer_eat(Lexer *l, size_t len)
 static int lexer_trim_left(Lexer *l)
 {
     int count = 0;
+    // printf("%zu %zu %c\n", l->content_len, l->cursor, l->content[l->cursor]);
     while (l->cursor < l->content_len && isspace(l->content[l->cursor]))
     {
         count++;
@@ -122,26 +138,68 @@ static bool is_symbol(char x)
 {
     return isalnum(x) || x == '_';
 }
-static Token lexer_next(Lexer *l)
+static bool collect_symbol(Lexer *l, Token *token)
 {
-    lexer_trim_left(l);
+    if (is_symbol_start(CUR))
+    {
+        token->kind = TOKEN_SYMBOL;
+        while (l->cursor < l->content_len && is_symbol(CUR))
+        {
+            l->cursor += 1;
+            token->text_len += 1;
+        }
+        return true;
+    }
+    return false;
+}
+static bool collect_sfunc(Lexer *l, Token *token)
+{
+    if (CUR == '$')
+    {
+        token->kind = TOKEN_SFUNC;
+        // lexer_eat(l, 1);
+        while (l->cursor < l->content_len && CUR != '\n' && CUR != ';')
+        {
+            if (CUR == ')')
+            {
+                lexer_eat(l, 1);
+                token->text_len += 1;
+                break;
+            }
+            lexer_eat(l, 1);
+            token->text_len += 1;
+        }
 
-    Token token = {
-        .text = &l->content[l->cursor]};
-
-    if (l->cursor >= l->content_len)
-        return token;
-
+        if (l->cursor < l->content_len)
+        {
+            lexer_eat(l, 1);
+        }
+        // Token symbol;
+        // if (collect_symbol(l, &symbol))
+        // {
+        //     token->text_len += symbol.text_len;
+        //     // lexer_eat(l, symbol.text_len);
+        // }
+        // else
+        // {
+        //     error("Must be name token after `$`, but found '%c'", CUR);
+        // }
+        return true;
+    }
+    return false;
+}
+static bool collect_preproc(Lexer *l, Token *token)
+{
     if (CUR == '#')
     {
-        token.kind = TOKEN_PREPROC;
+        token->kind = TOKEN_PREPROC;
         bool new_line = false;
         do
         {
             if (CUR == '\n')
             {
                 lexer_eat(l, 1);
-                token.text_len++;
+                token->text_len++;
             }
 
             while (l->cursor < l->content_len && CUR != '\n')
@@ -155,21 +213,52 @@ static Token lexer_next(Lexer *l)
                     new_line = false;
                 }
                 lexer_eat(l, 1);
-                token.text_len += 1;
+                token->text_len += 1;
             }
         } while (new_line == true);
 
-        return token;
+        return true;
     }
-
-    if (is_symbol_start(CUR))
+    return false;
+}
+static bool collect_string(Lexer *l, Token *token)
+{
+    if (CUR == '"')
     {
-        token.kind = TOKEN_SYMBOL;
-        while (l->cursor < l->content_len && is_symbol(CUR))
+        // TODO: TOKEN_STRING should also handle escape sequences
+        token->kind = TOKEN_STRING;
+        lexer_eat(l, 1);
+        while (l->cursor < l->content_len && CUR != '"' && CUR != '\n')
         {
-            l->cursor += 1;
-            token.text_len += 1;
+            lexer_eat(l, 1);
         }
+        if (l->cursor < l->content_len)
+        {
+            lexer_eat(l, 1);
+        }
+        token->text_len = &CUR - token->text;
+        return true;
+    }
+    return false;
+}
+
+static Token lexer_next(Lexer *l)
+{
+
+    lexer_trim_left(l);
+
+    Token token = {
+        .text = &CUR};
+
+    if (l->cursor >= l->content_len)
+        return token;
+
+    if (
+        collect_string(l, &token) ||
+        collect_sfunc(l, &token) ||
+        collect_preproc(l, &token) ||
+        collect_symbol(l, &token))
+    {
         return token;
     }
 
@@ -188,16 +277,16 @@ static Token lexer_next(Lexer *l)
 
     token.kind = TOKEN_INVALID;
     token.text_len = 1;
+    // lexer_eat(l, 1);
 
     l->cursor += 1;
     return token;
 }
 
-size_t lexer_collect_from(char *content, size_t content_len, Token *tokens)
+size_t lexer_collect_from(char *content, size_t content_len, Token **tokens)
 {
     Lexer l = lexer_new(content, content_len);
-    Token t;
-    t = lexer_next(&l);
+    Token t = lexer_next(&l);
     while (t.kind != TOKEN_END)
     {
         fprintf(stdout, "'%.*s' (%s)\n", (int)t.text_len, t.text, token_kind_name(t.kind));

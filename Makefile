@@ -2,8 +2,11 @@ preq := main.c lexer.c
 exe := do
 cc := clang
 
+run: build
+	./${exe}
+
 build:
 	${cc} ${preq} -o ${exe}
-
-run:
-	./${exe}
+	
+gcc:
+	gcc ${preq} -o ${exe}

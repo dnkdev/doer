@@ -44,6 +44,5 @@ int main(int c, char *argv[])
     Token *tokens = malloc(sizeof(Token));
     char *content;
     size_t content_len = read_file(file_name, &content);
-    printf("Text2: \n%s", content);
-    size_t token_count = lexer_collect_from(content, content_len, tokens);
+    size_t token_count = lexer_collect_from(content, content_len, &tokens);
 }

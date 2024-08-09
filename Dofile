@@ -1,8 +1,8 @@
-
+$search *.txt "/"
 $search("*.txt", "/");
 file := $get(file.txt)
 
-if $date(file.date).
+if $date file.date; > 
 
 preq := main.c
 out := main.out
@@ -16,5 +16,13 @@ output:
     res := $->build
     echo $len(res)
 
-build: #thread
+@preq
+@out
+build:
     clang %preq -o %out
+
+run: build
+	./${exe}
+
+print:
+    for 
