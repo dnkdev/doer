@@ -9,4 +9,4 @@ build:
 	${cc} ${preq} -o ${exe}
 	
 gcc:
-	gcc ${preq} -o ${exe}
+	gcc --std=c11 ${preq} -o ${exe} -g

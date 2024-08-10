@@ -40,3 +40,5 @@
 #define error(s, ...)                                                                                        \
     fprintf(stderr, TERM_RED "%s:%d:%s " #s "\n" TERM_RESET, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__); \
     exit(1);
+
+#define is_space(x) (x == ' ') || (x == '\t')

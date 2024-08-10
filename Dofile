@@ -1,28 +1,44 @@
-$search *.txt "/"
-$search("*.txt", "/");
-file := $get(file.txt)
-
+$search *.txt "/";
+$(search "*.txt" "/")
+file := $(get file.txt)
+data := "Hello World"
 if $date file.date; > 
+if $(date file.date)
+
 
 preq := main.c
 out := main.out
 
 debug := $flag 
+debug := $(len data)
 
 output:
-    if is $flag(debug) {
-
+    if 1 is $flag(debug) {
+		echo "starting"
+		
     }
-    res := $->build
-    echo $len(res)
+    res := $search 
+	echo $len(res)
 
-@preq
-@out
+@file
+@pathfrom
+$search:
+	$(ls) 
+	wget google.com
+	
 build:
-    clang %preq -o %out
+    clang ${preq} -o ${out}
+	clang $preq -o $out
 
 run: build
 	./${exe}
 
 print:
-    for 
+    for
+
+empty:
+	hey := "STRING"
+
+if x == 1 {
+
+}

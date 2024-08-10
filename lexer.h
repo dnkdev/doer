@@ -6,19 +6,18 @@
 #include <ctype.h>
 #include <stdbool.h>
 
-// #include "common.h"
-
 typedef enum
 {
     TOKEN_END = 0,
     TOKEN_INVALID,
-    TOKEN_DOLLAR,
     TOKEN_SFUNC,
+    TOKEN_DOLLAR,
+    TOKEN_DECL_SIGN,
     TOKEN_DOT,
     TOKEN_PREPROC,
     TOKEN_SYMBOL,
+    TOKEN_NUMBER,
     TOKEN_ASTERISK,
-    TOKEN_DECL,
     TOKEN_OPAREN,
     TOKEN_CPAREN,
     TOKEN_OCURLY,
@@ -27,9 +26,24 @@ typedef enum
     TOKEN_COLON,
     TOKEN_COMMENT,
     TOKEN_STRING,
-    TOKEN_ARROW_RIGHT
+    TOKEN_ARROW_RIGHT,
+    TOKEN_TASK_SPACE,
+    TOKEN_TASK_TABSPACE,
+    TOKEN_SPACE,
+    TOKEN_TABSPACE,
+    TOKEN_SLASH,
+    TOKEN_PLUS,
+    TOKEN_MINUS,
+    TOKEN_EQ,
+    TOKEN_EQEQ,
+    TOKEN_AT,
+    TOKEN_EXCL,
+    TOKEN_LESS,
+    TOKEN_GREATER,
+    TOKEN_LESS_EQ,
+    TOKEN_GREATER_EQ,
+    TOKEN_NEWLINE,
 } TokenKind;
-
 typedef struct
 {
     const char *file_path;
@@ -40,7 +54,7 @@ typedef struct
 typedef struct
 {
     TokenKind kind;
-    const char *text;
+    char *text;
     size_t text_len;
     Loc pos;
 } Token;
