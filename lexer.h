@@ -10,7 +10,6 @@ typedef enum
 {
     TOKEN_END = 0,
     TOKEN_INVALID,
-    TOKEN_SFUNC,
     TOKEN_DOLLAR,
     TOKEN_DECL_SIGN,
     TOKEN_DOT,

@@ -68,8 +68,6 @@ static const char *token_kind_name(TokenKind kind)
         return "invalid token";
     case TOKEN_DOLLAR:
         return "dollar token";
-    case TOKEN_SFUNC:
-        return "super function token";
     case TOKEN_PREPROC:
         return "preprocessor token";
     case TOKEN_SYMBOL:
@@ -122,8 +120,6 @@ static const char *token_kind_name(TokenKind kind)
         return "eqeq token";
     case TOKEN_AT:
         return "at token";
-    case TOKEN_EXCL:
-        return "exclamation mark token";
     case TOKEN_LESS:
         return "less token";
     case TOKEN_GREATER:
@@ -252,6 +248,7 @@ static Token lexer_next(Lexer *l)
 
     return token;
 }
+
 static bool collect_task_spaces(Lexer *l, Token *token)
 {
     if (can_look_back(l) && look_back(l) == '\n')
@@ -347,60 +344,6 @@ static bool collect_number(Lexer *l, Token *token)
                 token->text_len += 1;
                 lexer_eat(l, 1);
             }
-        }
-        return true;
-    }
-    return false;
-}
-static bool collect_sfunc(Lexer *l, Token *token)
-{
-    if (CUR == '$')
-    {
-        token->kind = TOKEN_SFUNC;
-        token->pos.row = l->line;
-        token->pos.col = l->cursor - l->bol;
-        // lexer_eat(l, 1);
-        if (can_peek(l))
-        {
-            if (peek(l) == '{')
-            {
-                while (l->cursor < l->content_len && CUR != '\n' && CUR != ';' && CUR != '}')
-                {
-                    lexer_eat(l, 1);
-                    token->text_len += 1;
-                }
-                if (CUR == '}')
-                {
-                    lexer_eat(l, 1);
-                    token->text_len += 1;
-                }
-
-                return true;
-            }
-            else if (peek(l) == '(')
-            {
-                while (l->cursor < l->content_len && CUR != '\n' && CUR != ';' && CUR != ')')
-                {
-                    lexer_eat(l, 1);
-                    token->text_len += 1;
-                }
-                if (CUR == ')')
-                {
-                    lexer_eat(l, 1);
-                    token->text_len += 1;
-                }
-
-                return true;
-            }
-        }
-        while (l->cursor < l->content_len && CUR != '\n' && CUR != ';')
-        {
-            lexer_eat(l, 1);
-            token->text_len += 1;
-        }
-        if (l->cursor < l->content_len)
-        {
-            lexer_eat(l, 1);
         }
         return true;
     }
