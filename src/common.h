@@ -1,3 +1,5 @@
+#ifndef _COMMON_H
+#define _COMMON_H
 
 #define UNIMPLEMENTED(...)                                                                                            \
     do                                                                                                                \
@@ -37,8 +39,14 @@
 #define TERM_HIDE "\033[8m"
 #define TERM_CROSSED "\033[9m"
 
-#define error(s, ...)                                                                                        \
-    fprintf(stderr, TERM_RED "%s:%d:%s " #s "\n" TERM_RESET, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__); \
+#define error(s, ...)                                                                                                           \
+    fprintf(stderr, "%s:%d:%s" TERM_RED TERM_BOLD " error: " TERM_RESET s "\n", __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__); \
+    exit(1);
+
+#define warning(s, ...)                                                                                                               \
+    fprintf(stderr, "%s:%d:%s" TERM_MAGENTA TERM_BOLD " warning: " TERM_RESET s "\n", __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__); \
     exit(1);
 
 #define is_space(x) (x == ' ') || (x == '\t')
+
+#endif // _COMMON_H

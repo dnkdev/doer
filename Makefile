@@ -1,4 +1,4 @@
-preq := main.c lexer.c
+preq := src/main.c src/lexer.c src/parser.c src/ast.c
 exe := do
 cc := clang
 
@@ -6,7 +6,7 @@ run: build
 	./${exe}
 
 build:
-	${cc} ${preq} -o ${exe}
+	${cc} ${preq} -o ${exe} -g
 	
 gcc:
 	gcc --std=c11 ${preq} -o ${exe} -g

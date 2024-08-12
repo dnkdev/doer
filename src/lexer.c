@@ -14,17 +14,16 @@ static char look_back(Lexer *l);
 static bool can_peek(Lexer *l);
 static bool can_look_back(Lexer *l);
 
-static bool collect_preproc(Lexer *l, Token *token);
-static bool collect_sfunc(Lexer *l, Token *token);
 static bool collect_newline(Lexer *l, Token *token);
 static bool collect_task_spaces(Lexer *l, Token *token);
 static bool collect_string(Lexer *l, Token *token);
 static bool collect_symbol(Lexer *l, Token *token);
 static bool collect_number(Lexer *l, Token *token);
 static bool collect_literals(Lexer *l, Token *token);
+static bool collect_comment(Lexer *l, Token *token);
 
 static const char *token_kind_name(TokenKind name);
-static Lexer lexer_new(char *content, size_t content_len);
+static Lexer *lexer_new(char *content, size_t content_len);
 static Token lexer_next(Lexer *l);
 
 typedef struct
@@ -47,6 +46,7 @@ Literal_Token literal_tokens[] = {
     {.text = "/", .kind = TOKEN_SLASH},
     {.text = "+", .kind = TOKEN_PLUS},
     {.text = "-", .kind = TOKEN_MINUS},
+    {.text = "!=", .kind = TOKEN_NOTEQ},
     {.text = "==", .kind = TOKEN_EQEQ},
     {.text = "=", .kind = TOKEN_EQ},
     {.text = "@", .kind = TOKEN_AT},
@@ -114,6 +114,8 @@ static const char *token_kind_name(TokenKind kind)
         return "plus token";
     case TOKEN_MINUS:
         return "minus token";
+    case TOKEN_NOTEQ:
+        return "not-eq token";
     case TOKEN_EQ:
         return "eq token";
     case TOKEN_EQEQ:
@@ -158,12 +160,12 @@ static char look_back(Lexer *l)
 {
     return l->content[l->cursor - 1];
 }
-static Lexer lexer_new(char *content, size_t content_len)
+static Lexer *lexer_new(char *content, size_t content_len)
 {
-    Lexer l = {0};
-    l.content = content;
-    l.content_len = content_len;
-    l.line = 1;
+    Lexer *l = calloc(1, sizeof(Lexer));
+    l->content = content;
+    l->content_len = content_len;
+    l->line = 1;
     return l;
 }
 
@@ -212,17 +214,58 @@ static bool is_symbol(char x)
     return isalnum(x) || x == '_';
 }
 
-size_t lexer_collect_from(char *content, size_t content_len, Token **tokens)
+size_t get_file_size(FILE *file)
 {
-    Lexer l = lexer_new(content, content_len);
-    Token t = lexer_next(&l);
+    fseek(file, 0, SEEK_END);
+    size_t file_size = ftell(file);
+    rewind(file);
+    return file_size;
+}
+
+size_t read_file(const char *file_path, char **dest)
+{
+    FILE *file = fopen(file_path, "r");
+    if (file == NULL)
+    {
+        error("Can't open file `%s`", file_path);
+    }
+
+    size_t file_size = get_file_size(file);
+
+    *dest = (char *)malloc(file_size * sizeof(char) + 1);
+    fread(*dest, file_size, 1, file);
+    (*dest)[file_size] = '\0';
+    fclose(file);
+    return file_size;
+}
+
+Lexer *lexer_collect_file(char *file_path, Token **tokens, size_t *token_count)
+{
+    char *content;
+    size_t count = 0;
+    size_t content_len = read_file(file_path, &content);
+    Lexer *l = lexer_new(content, content_len);
+    Token t = lexer_next(l);
     while (t.kind != TOKEN_END)
     {
-        fprintf(stdout, "'%.*s' %zu (%s) %zu %zu\n", (int)t.text_len, t.text, t.text_len, token_kind_name(t.kind), t.pos.row, t.pos.col);
-        // fprintf(stdout, "token info: %zu %.*s\n", t.text_len, (int)t.text_len, t.text);
-        t = lexer_next(&l);
+        // fprintf(stdout, "'%.*s' %zu (%s) %zu %zu\n", (int)t.text_len, t.text, t.text_len, token_kind_name(t.kind), t.pos.row, t.pos.col);
+        t = lexer_next(l);
+        t.pos.file_path = file_path;
+        count += 1;
+        if (count > 1)
+        {
+            Token *temp = realloc(*tokens, count * sizeof(Token));
+            if (temp == NULL)
+            {
+                error("Memory reallocation failed!", NULL);
+                return NULL;
+            }
+            *tokens = temp;
+            (*tokens)[count - 1] = t;
+        }
     }
-    return 0;
+    printf("Token count: %zu\n", count);
+    return l;
 }
 static Token lexer_next(Lexer *l)
 {
@@ -236,7 +279,8 @@ static Token lexer_next(Lexer *l)
         collect_symbol(l, &token) ||
         collect_string(l, &token) ||
         collect_number(l, &token) ||
-        collect_literals(l, &token))
+        collect_literals(l, &token) ||
+        collect_comment(l, &token))
     {
         return token;
     }
@@ -349,41 +393,7 @@ static bool collect_number(Lexer *l, Token *token)
     }
     return false;
 }
-static bool collect_preproc(Lexer *l, Token *token)
-{
-    if (CUR == '#')
-    {
-        token->kind = TOKEN_PREPROC;
-        token->pos.row = l->line;
-        token->pos.col = l->cursor - l->bol;
-        bool new_line = false;
-        do
-        {
-            if (CUR == '\n')
-            {
-                lexer_eat(l, 1);
-                token->text_len++;
-            }
 
-            while (l->cursor < l->content_len && CUR != '\n')
-            {
-                if (CUR == '\\')
-                {
-                    new_line = true;
-                }
-                else if (!isspace(CUR) && new_line == true)
-                {
-                    new_line = false;
-                }
-                lexer_eat(l, 1);
-                token->text_len += 1;
-            }
-        } while (new_line == true);
-
-        return true;
-    }
-    return false;
-}
 static bool collect_string(Lexer *l, Token *token)
 {
     if (CUR == '"')
@@ -422,6 +432,23 @@ static bool collect_literals(Lexer *l, Token *token)
             lexer_eat(l, text_len);
             return true;
         }
+    }
+    return false;
+}
+static bool collect_comment(Lexer *l, Token *token)
+{
+    if (CUR == '#')
+    {
+        token->kind = TOKEN_COMMENT;
+        token->pos.row = l->line;
+        token->pos.col = l->cursor - l->bol;
+        while (l->cursor < l->content_len && CUR != '\n')
+        {
+            lexer_eat(l, 1);
+            token->text_len += 1;
+        }
+
+        return true;
     }
     return false;
 }

@@ -1,16 +1,22 @@
 $search *.txt "/";
-$(search "*.txt" "/")
-file := $(get file.txt)
+$(search "*.txt" 
+"/")
+file := $(__get file.txt)
 data := "Hello World"
 if $date file.date; > 
 if $(date file.date)
-
 
 preq := main.c
 out := main.out
 
 debug := $flag 
 debug := $(len data)
+
+@file
+@pathfrom
+$search:
+	$(ls) 
+	wget google.com
 
 output:
     if 1 is $flag(debug) {
@@ -20,11 +26,6 @@ output:
     res := $search 
 	echo $len(res)
 
-@file
-@pathfrom
-$search:
-	$(ls) 
-	wget google.com
 	
 build:
     clang ${preq} -o ${out}
@@ -36,9 +37,10 @@ run: build
 print:
     for
 
+# on puprpose
 empty:
 	hey := "STRING"
 
-if x == 1 {
+if x != 1 {
 
-}
+}  

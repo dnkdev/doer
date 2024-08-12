@@ -33,6 +33,7 @@ typedef enum
     TOKEN_SLASH,
     TOKEN_PLUS,
     TOKEN_MINUS,
+    TOKEN_NOTEQ,
     TOKEN_EQ,
     TOKEN_EQEQ,
     TOKEN_AT,
@@ -43,9 +44,10 @@ typedef enum
     TOKEN_GREATER_EQ,
     TOKEN_NEWLINE,
 } TokenKind;
+
 typedef struct
 {
-    const char *file_path;
+    char *file_path;
     size_t row;
     size_t col;
 } Loc;
@@ -67,6 +69,6 @@ typedef struct
     size_t bol; // beginning of the line
 } Lexer;
 
-size_t lexer_collect_from(char *content, size_t content_len, Token **tokens);
+Lexer *lexer_collect_file(char *file_path, Token **tokens, size_t *token_count);
 
 #endif // _LEXER_H
