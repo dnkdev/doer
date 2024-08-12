@@ -5,9 +5,11 @@
 #define CUR p->tokens[p->cursor]
 #define can_parse(p, x) p->token_count > p->cursor + x
 
-Parser_t parser_new(Lexer *l, Token *tokens, size_t token_count)
+Parser_t *parser_new(Lexer_t *l, Token *tokens, size_t token_count)
 {
-    Parser_t p = {.tokens = tokens, .token_count = token_count, .cursor = 0, .content = l->content, .content_len = l->content_len};
+
+    Parser_t *p = malloc(sizeof(Parser_t));
+    p->tokens = tokens, p->token_count = token_count, p->cursor = 0, p->content = l->content, p->content_len = l->content_len;
     return p;
 }
 void parser_advance(Parser_t *p, int count)

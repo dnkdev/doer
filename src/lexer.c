@@ -9,22 +9,22 @@
 
 #define CUR l->content[l->cursor]
 
-static char peek(Lexer *l);
-static char look_back(Lexer *l);
-static bool can_peek(Lexer *l);
-static bool can_look_back(Lexer *l);
+static char peek(Lexer_t *l);
+static char look_back(Lexer_t *l);
+static bool can_peek(Lexer_t *l);
+static bool can_look_back(Lexer_t *l);
 
-static bool collect_newline(Lexer *l, Token *token);
-static bool collect_task_spaces(Lexer *l, Token *token);
-static bool collect_string(Lexer *l, Token *token);
-static bool collect_symbol(Lexer *l, Token *token);
-static bool collect_number(Lexer *l, Token *token);
-static bool collect_literals(Lexer *l, Token *token);
-static bool collect_comment(Lexer *l, Token *token);
+static bool collect_newline(Lexer_t *l, Token *token);
+static bool collect_task_spaces(Lexer_t *l, Token *token);
+static bool collect_string(Lexer_t *l, Token *token);
+static bool collect_symbol(Lexer_t *l, Token *token);
+static bool collect_number(Lexer_t *l, Token *token);
+static bool collect_literals(Lexer_t *l, Token *token);
+static bool collect_comment(Lexer_t *l, Token *token);
 
 static const char *token_kind_name(TokenKind name);
-static Lexer *lexer_new(char *content, size_t content_len);
-static Token lexer_next(Lexer *l);
+static Lexer_t *lexer_new(char *content, size_t content_len);
+static Token lexer_next(Lexer_t *l);
 
 typedef struct
 {
@@ -136,7 +136,7 @@ static const char *token_kind_name(TokenKind kind)
     return NULL;
 }
 
-static bool can_peek(Lexer *l)
+static bool can_peek(Lexer_t *l)
 {
     if (l->content_len > l->cursor + 1)
     {
@@ -144,11 +144,11 @@ static bool can_peek(Lexer *l)
     }
     return false;
 }
-static char peek(Lexer *l)
+static char peek(Lexer_t *l)
 {
     return l->content[l->cursor + 1];
 }
-static bool can_look_back(Lexer *l)
+static bool can_look_back(Lexer_t *l)
 {
     if (l->cursor - 1 >= 0 && l->content_len > l->cursor - 1)
     {
@@ -156,20 +156,20 @@ static bool can_look_back(Lexer *l)
     }
     return false;
 }
-static char look_back(Lexer *l)
+static char look_back(Lexer_t *l)
 {
     return l->content[l->cursor - 1];
 }
-static Lexer *lexer_new(char *content, size_t content_len)
+static Lexer_t *lexer_new(char *content, size_t content_len)
 {
-    Lexer *l = calloc(1, sizeof(Lexer));
+    Lexer_t *l = calloc(1, sizeof(Lexer_t));
     l->content = content;
     l->content_len = content_len;
     l->line = 1;
     return l;
 }
 
-static bool lexer_starts_with(Lexer *l, const char *prefix)
+static bool lexer_starts_with(Lexer_t *l, const char *prefix)
 {
     size_t prefix_len = strlen(prefix);
     if (prefix_len == 0)
@@ -190,7 +190,7 @@ static bool lexer_starts_with(Lexer *l, const char *prefix)
     return true;
 }
 
-static char lexer_eat(Lexer *l, size_t len)
+static char lexer_eat(Lexer_t *l, size_t len)
 {
     assert(l->cursor < l->content_len);
     char x = l->content[l->cursor];
@@ -239,12 +239,12 @@ size_t read_file(const char *file_path, char **dest)
     return file_size;
 }
 
-Lexer *lexer_collect_file(char *file_path, Token **tokens, size_t *token_count)
+Lexer_t *lexer_collect_file(char *file_path, Token **tokens, size_t *token_count)
 {
     char *content;
     size_t count = 0;
     size_t content_len = read_file(file_path, &content);
-    Lexer *l = lexer_new(content, content_len);
+    Lexer_t *l = lexer_new(content, content_len);
     Token t = lexer_next(l);
     while (t.kind != TOKEN_END)
     {
@@ -267,7 +267,7 @@ Lexer *lexer_collect_file(char *file_path, Token **tokens, size_t *token_count)
     printf("Token count: %zu\n", count);
     return l;
 }
-static Token lexer_next(Lexer *l)
+static Token lexer_next(Lexer_t *l)
 {
     Token token = {.text = &CUR};
     if (l->cursor >= l->content_len)
@@ -293,7 +293,7 @@ static Token lexer_next(Lexer *l)
     return token;
 }
 
-static bool collect_task_spaces(Lexer *l, Token *token)
+static bool collect_task_spaces(Lexer_t *l, Token *token)
 {
     if (can_look_back(l) && look_back(l) == '\n')
     {
@@ -337,7 +337,7 @@ static bool collect_task_spaces(Lexer *l, Token *token)
     }
     return false;
 }
-static bool collect_newline(Lexer *l, Token *token)
+static bool collect_newline(Lexer_t *l, Token *token)
 {
     if (CUR == '\n' || CUR == '\r')
     {
@@ -351,7 +351,7 @@ static bool collect_newline(Lexer *l, Token *token)
     return false;
 }
 
-static bool collect_symbol(Lexer *l, Token *token)
+static bool collect_symbol(Lexer_t *l, Token *token)
 {
     if (is_symbol_start(CUR))
     {
@@ -367,7 +367,7 @@ static bool collect_symbol(Lexer *l, Token *token)
     }
     return false;
 }
-static bool collect_number(Lexer *l, Token *token)
+static bool collect_number(Lexer_t *l, Token *token)
 {
     if (isdigit(CUR))
     {
@@ -394,7 +394,7 @@ static bool collect_number(Lexer *l, Token *token)
     return false;
 }
 
-static bool collect_string(Lexer *l, Token *token)
+static bool collect_string(Lexer_t *l, Token *token)
 {
     if (CUR == '"')
     {
@@ -417,7 +417,7 @@ static bool collect_string(Lexer *l, Token *token)
     }
     return false;
 }
-static bool collect_literals(Lexer *l, Token *token)
+static bool collect_literals(Lexer_t *l, Token *token)
 {
     for (size_t i = 0; i < literal_tokens_count; ++i)
     {
@@ -435,7 +435,7 @@ static bool collect_literals(Lexer *l, Token *token)
     }
     return false;
 }
-static bool collect_comment(Lexer *l, Token *token)
+static bool collect_comment(Lexer_t *l, Token *token)
 {
     if (CUR == '#')
     {

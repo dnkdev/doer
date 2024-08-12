@@ -14,7 +14,7 @@ typedef struct
     size_t token_count;
 } Parser_t;
 
-Parser_t parser_new(Lexer *l, Token *tokens, size_t token_count);
+Parser_t *parser_new(Lexer_t *l, Token *tokens, size_t token_count);
 size_t parser_parse(Parser_t *p);
 void parser_advance(Parser_t *p, int count);
 static Token look(Parser_t *p, int count);

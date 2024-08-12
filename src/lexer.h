@@ -67,8 +67,8 @@ typedef struct
     size_t cursor;
     size_t line;
     size_t bol; // beginning of the line
-} Lexer;
+} Lexer_t;
 
-Lexer *lexer_collect_file(char *file_path, Token **tokens, size_t *token_count);
+Lexer_t *lexer_collect_file(char *file_path, Token **tokens, size_t *token_count);
 
 #endif // _LEXER_H
