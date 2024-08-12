@@ -22,7 +22,6 @@ static bool collect_number(Lexer_t *l, Token *token);
 static bool collect_literals(Lexer_t *l, Token *token);
 static bool collect_comment(Lexer_t *l, Token *token);
 
-static const char *token_kind_name(TokenKind name);
 static Lexer_t *lexer_new(char *content, size_t content_len);
 static Token lexer_next(Lexer_t *l);
 
@@ -58,7 +57,7 @@ Literal_Token literal_tokens[] = {
     {.text = "->", .kind = TOKEN_ARROW_RIGHT}};
 #define literal_tokens_count (sizeof(literal_tokens) / sizeof(literal_tokens[0]))
 
-static const char *token_kind_name(TokenKind kind)
+const char *token_kind_name(TokenKind kind)
 {
     switch (kind)
     {
@@ -99,7 +98,7 @@ static const char *token_kind_name(TokenKind kind)
     case TOKEN_ARROW_RIGHT:
         return "arrow-right token";
     case TOKEN_TASK_SPACE:
-        return "tasl blank space token";
+        return "task blank space token";
     case TOKEN_TASK_TABSPACE:
         return "task tab space token";
     case TOKEN_SPACE:
@@ -245,14 +244,14 @@ Lexer_t *lexer_collect_file(char *file_path, Token **tokens, size_t *token_count
     size_t count = 0;
     size_t content_len = read_file(file_path, &content);
     Lexer_t *l = lexer_new(content, content_len);
-    Token t = lexer_next(l);
+    Token t;
     while (t.kind != TOKEN_END)
     {
-        // fprintf(stdout, "'%.*s' %zu (%s) %zu %zu\n", (int)t.text_len, t.text, t.text_len, token_kind_name(t.kind), t.pos.row, t.pos.col);
         t = lexer_next(l);
+        // fprintf(stdout, "'%.*s' %zu (%s) %zu %zu\n", (int)t.text_len, t.text, t.text_len, token_kind_name(t.kind), t.pos.row, t.pos.col);
         t.pos.file_path = file_path;
         count += 1;
-        if (count > 1)
+        if (count >= 1)
         {
             Token *temp = realloc(*tokens, count * sizeof(Token));
             if (temp == NULL)
@@ -264,6 +263,7 @@ Lexer_t *lexer_collect_file(char *file_path, Token **tokens, size_t *token_count
             (*tokens)[count - 1] = t;
         }
     }
+    *token_count = count;
     printf("Token count: %zu\n", count);
     return l;
 }

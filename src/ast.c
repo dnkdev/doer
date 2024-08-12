@@ -14,8 +14,12 @@ const char *ast_kind_name(AstKind k)
     {
     case AST_COMMAND:
         return "command";
+    case AST_VAR:
+        return "variable";
     case AST_VAR_DECL:
         return "var decl";
+    case AST_STRING:
+        return "string";
     case AST_EXPRESSION:
         return "expression";
     case AST_ASSIGN:

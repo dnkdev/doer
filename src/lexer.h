@@ -70,5 +70,6 @@ typedef struct
 } Lexer_t;
 
 Lexer_t *lexer_collect_file(char *file_path, Token **tokens, size_t *token_count);
+const char *token_kind_name(TokenKind kind);
 
 #endif // _LEXER_H

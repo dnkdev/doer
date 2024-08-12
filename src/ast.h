@@ -21,6 +21,8 @@ typedef enum
 {
     AST_COMMAND,
     AST_VAR_DECL,
+    AST_VAR,
+    AST_STRING,
     AST_EXPRESSION,
     AST_ASSIGN,
     AST_FUNC_CALL,
@@ -39,8 +41,16 @@ typedef union
     struct AST_VAR_DECL
     {
         char *name;
-        char *value;
+        struct Ast_t *value;
     } AST_VAR_DECL;
+    struct AST_VAR
+    {
+        char *name;
+    } AST_VAR;
+    struct AST_STRING
+    {
+        char *name;
+    } AST_STRING;
     struct AST_EXPRESSION
     {
         struct Ast_t *left;
@@ -53,7 +63,7 @@ typedef union
     } AST_ASSIGN;
     struct AST_FUNC_CALL
     {
-        char *name;
+        const char *name;
         struct Ast_t **arguments;
         size_t arg_count;
     } AST_FUNC_CALL;
@@ -88,7 +98,7 @@ typedef struct Ast_t
 } Ast_t;
 
 Ast_t *ast_new(Ast_t ast);
-#define AST_NEW(t, ...) ast_new((Ast_t){t, .t = (struct t){__VA_ARGS__}})
+#define AST_NEW(t, ...) ast_new((struct Ast_t){.kind = t, .data.t = (struct t){__VA_ARGS__}})
 
 const char *ast_kind_name(AstKind k);
 
