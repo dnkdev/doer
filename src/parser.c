@@ -44,9 +44,9 @@ bool parser_next(Parser_t *p, Ast_t *ast)
 {
     if (
         parse_var_decl(p, ast) ||
-        parse_percent_directive(p, ast))
+        parse_percent_directive(p, ast) ||
         // parse_var(p, ast) ||
-        // parse_func_call(p, ast))
+        parse_func_call(p, ast))
         return true;
     else
     {
@@ -86,10 +86,23 @@ size_t parser_parse(Parser_t *p, Ast_t *ast)
             }
             break;
         }
-        // Token t = *p->cur;
-        // fprintf(stdout, "(%s) %.*s %s\n", ast_kind_name(ast.kind), (int)t.text_len, t.text, token_kind_name(t.kind));
     }
     return 0;
+}
+static bool parse_func_call(Parser_t *p, Ast_t *ast)
+{
+    if (p->cur->kind == TOKEN_DOLLAR)
+    {
+        if (can_parse(p, 1))
+        {
+            Token next = look(p, 1);
+            if (next.kind == TOKEN_OPAREN)
+            {
+            }
+            return true;
+        }
+    }
+    return false;
 }
 static bool parse_percent_directive(Parser_t *p, Ast_t *ast)
 {
@@ -106,16 +119,6 @@ static bool parse_percent_directive(Parser_t *p, Ast_t *ast)
                                   .data.AST_PERCENT = (struct AST_PERCENT){
                                       .value = string}});
 
-        // char name[MAX_PERCENT_DIRECTIVE_NAME + 1];
-        // char *text = p->cur->text;
-        // size_t text_len = p->cur->text_len;
-        // if (text_len > MAX_PERCENT_DIRECTIVE_NAME)
-        // {
-        //     parser_ptrtoken_error(p, p->cur, "percent directive name too long, max: %d", MAX_PERCENT_DIRECTIVE_NAME);
-        // }
-        // *ast = AST_NEW_NODE(*ast, AST_PERCENT, malloc(sizeof(char) * text_len + 1));
-        // strncpy((*ast)->data.AST_PERCENT.value, text, text_len);
-        // (*ast)->data.AST_PERCENT.value[text_len] = '\0';
         parser_eat(p, TOKEN_PERCENT);
         return true;
     }
@@ -147,11 +150,6 @@ static bool parse_var_decl(Parser_t *p, Ast_t *ast)
                 }
                 if (p->cur->kind == TOKEN_STRING)
                 {
-                    // ast_new_node(ast, (struct AstNode_t){.kind = t, .data.t = (struct t){__VA_ARGS__}})
-                    // AstNode_t *node = AST_NEW_NODE(ast, AST_VAR_DECL,
-                    //                                (malloc(sizeof(char) * name_token->text_len + 1)),
-                    //                                (AST_NEW_NODE(ast, AST_STRING,
-                    //                                              malloc(sizeof(char) * p->cur->text_len + 1))));
                     char *name = malloc(sizeof(char) * name_token->text_len + 1);
                     char *string = malloc(sizeof(char) * p->cur->text_len + 1);
                     strncpy(name, name_token->text, (int)name_token->text_len);
@@ -174,27 +172,7 @@ static bool parse_var_decl(Parser_t *p, Ast_t *ast)
                                                   .name = name,
                                                   .value = string_node}});
 
-                    // node->data.AST_VAR_DECL.name = name;
-                    // node->data.AST_VAR_DECL.value->data.AST_STRING.value = string;
-
-                    // strncpy(node->data.AST_VAR_DECL.name, name_token->text, (int)name_token->text_len);
-                    // strncpy(node->data.AST_VAR_DECL.value->data.AST_STRING.value, p->cur->text, (int)p->cur->text_len);
-                    // node->data.AST_VAR_DECL.value->data.AST_STRING.value[p->cur->text_len] = '\0';
-                    // node->data.AST_VAR_DECL.name[name_token->text_len] = '\0';
-                    // node->len = p->cur->text - name_token->text + p->cur->text_len;
-                    // node->text = name_token->text;
                     parser_eat(p, TOKEN_STRING);
-                    // *ast = AST_NEW(AST_VAR_DECL,
-                    //                malloc(sizeof(char) * name_token->text_len + 1),
-                    //                AST_NEW(AST_STRING, malloc(sizeof(char) * p->cur->text_len + 1)));
-
-                    // strncpy((*ast)->data.AST_VAR_DECL.name, name_token->text, (int)name_token->text_len);
-                    // strncpy((*ast)->data.AST_VAR_DECL.value->data.AST_STRING.value, p->cur->text, (int)p->cur->text_len);
-                    // (*ast)->nodes[].data.AST_VAR_DECL.value->data.AST_STRING.value[p->cur->text_len] = '\0';
-                    // (*ast)->data.AST_VAR_DECL.name[name_token->text_len] = '\0';
-                    // (*ast)->len = p->cur->text - name_token->text + p->cur->text_len;
-                    // (*ast)->text = name_token->text;
-                    // parser_eat(p, TOKEN_STRING);
                     return true;
                 }
                 else
@@ -219,14 +197,7 @@ static bool parse_var(Parser_t *p, Ast_t **ast)
     }
     return false;
 }
-static bool parse_func_call(Parser_t *p, Ast_t **ast)
-{
-    if (CUR.kind == TOKEN_DOLLAR)
-    {
-        return true;
-    }
-    return false;
-}
+
 static size_t peek_to(Parser_t *p, TokenKind kind, Token *t)
 {
     size_t len = 0;

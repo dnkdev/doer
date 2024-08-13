@@ -471,7 +471,10 @@ static bool collect_literals(Lexer_t *l, Token *token)
             token->text_len = text_len;
             token->pos.row = l->line;
             token->pos.col = l->cursor - l->bol;
-            l->is_var_decl = true;
+            if (token->kind == TOKEN_DECL_SIGN)
+            {
+                l->is_var_decl = true;
+            }
             lexer_eat(l, text_len);
             return true;
         }

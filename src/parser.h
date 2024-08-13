@@ -28,7 +28,7 @@ static size_t peek_through_blankspaces(Parser_t *p, Token *token);
 #define MAX_FUNC_NAME 32
 #define MAX_PERCENT_DIRECTIVE_NAME 8
 
-static bool parse_func_call(Parser_t *p, Ast_t **ast);
+static bool parse_func_call(Parser_t *p, Ast_t *ast);
 static bool parse_var_decl(Parser_t *p, Ast_t *ast);
 static bool parse_percent_directive(Parser_t *p, Ast_t *ast);
 static bool parse_var(Parser_t *p, Ast_t **ast);
