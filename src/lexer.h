@@ -13,7 +13,7 @@ typedef enum
     TOKEN_DOLLAR,
     TOKEN_DECL_SIGN,
     TOKEN_DOT,
-    TOKEN_PREPROC,
+    TOKEN_PERCENT,
     TOKEN_SYMBOL,
     TOKEN_NUMBER,
     TOKEN_ASTERISK,
@@ -66,10 +66,19 @@ typedef struct
     size_t content_len;
     size_t cursor;
     size_t line;
-    size_t bol; // beginning of the line
+    size_t bol;       // beginning of the line
+    bool is_var_decl; // if lexer detects :=, then all values after that are as one string
 } Lexer_t;
 
 Lexer_t *lexer_collect_file(char *file_path, Token **tokens, size_t *token_count);
 const char *token_kind_name(TokenKind kind);
+
+#define token_error(t, s, ...)                                                                                                         \
+    fprintf(stderr, "%s:%zu:%zu" TERM_RED TERM_BOLD " error: " TERM_RESET s "\n", t.pos.file_path, t.pos.row, t.pos.col, __VA_ARGS__); \
+    exit(1);
+
+#define ptrtoken_error(t, s, ...)                                                                                                         \
+    fprintf(stderr, "%s:%zu:%zu" TERM_RED TERM_BOLD " error: " TERM_RESET s "\n", t->pos.file_path, t->pos.row, t->pos.col, __VA_ARGS__); \
+    exit(1);
 
 #endif // _LEXER_H

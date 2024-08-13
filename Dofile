@@ -1,4 +1,3 @@
-a = "Hello World"
+a := run b
 
-run:
-    echo ${a}
+%0 %1

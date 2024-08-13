@@ -49,7 +49,7 @@ typedef union
     } AST_VAR;
     struct AST_STRING
     {
-        char *name;
+        char *value;
     } AST_STRING;
     struct AST_EXPRESSION
     {
@@ -94,6 +94,7 @@ typedef struct Ast_t
 {
     AstKind kind;
     AstKind_u data;
+    char *text;
     size_t len;
 } Ast_t;
 

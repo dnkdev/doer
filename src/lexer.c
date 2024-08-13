@@ -19,6 +19,7 @@ static bool collect_task_spaces(Lexer_t *l, Token *token);
 static bool collect_string(Lexer_t *l, Token *token);
 static bool collect_symbol(Lexer_t *l, Token *token);
 static bool collect_number(Lexer_t *l, Token *token);
+static bool collect_percent_directives(Lexer_t *l, Token *token);
 static bool collect_literals(Lexer_t *l, Token *token);
 static bool collect_comment(Lexer_t *l, Token *token);
 
@@ -67,8 +68,8 @@ const char *token_kind_name(TokenKind kind)
         return "invalid token";
     case TOKEN_DOLLAR:
         return "dollar token";
-    case TOKEN_PREPROC:
-        return "preprocessor token";
+    case TOKEN_PERCENT:
+        return "percent directive token";
     case TOKEN_SYMBOL:
         return "symbol token";
     case TOKEN_NUMBER:
@@ -248,7 +249,7 @@ Lexer_t *lexer_collect_file(char *file_path, Token **tokens, size_t *token_count
     while (t.kind != TOKEN_END)
     {
         t = lexer_next(l);
-        // fprintf(stdout, "'%.*s' %zu (%s) %zu %zu\n", (int)t.text_len, t.text, t.text_len, token_kind_name(t.kind), t.pos.row, t.pos.col);
+        fprintf(stdout, "'%.*s' %zu (%s) %zu %zu\n", (int)t.text_len, t.text, t.text_len, token_kind_name(t.kind), t.pos.row, t.pos.col);
         t.pos.file_path = file_path;
         count += 1;
         if (count >= 1)
@@ -273,12 +274,33 @@ static Token lexer_next(Lexer_t *l)
     if (l->cursor >= l->content_len)
         return token;
 
+    if (l->is_var_decl)
+    {
+
+        while (is_space(CUR))
+        {
+            lexer_eat(l, 1);
+        }
+        token.text = &CUR;
+        token.kind = TOKEN_STRING;
+        token.pos.row = l->line;
+        token.pos.col = l->cursor - l->bol;
+        while (l->cursor < l->content_len && CUR != '\n')
+        {
+            lexer_eat(l, 1);
+            token.text_len += 1;
+        }
+        l->is_var_decl = false;
+        return token;
+    }
+
     if (
         collect_newline(l, &token) ||
         collect_task_spaces(l, &token) ||
         collect_symbol(l, &token) ||
         collect_string(l, &token) ||
         collect_number(l, &token) ||
+        collect_percent_directives(l, &token) ||
         collect_literals(l, &token) ||
         collect_comment(l, &token))
     {
@@ -293,6 +315,26 @@ static Token lexer_next(Lexer_t *l)
     return token;
 }
 
+static bool collect_percent_directives(Lexer_t *l, Token *token)
+{
+    if (CUR == '%')
+    {
+        token->kind = TOKEN_PERCENT;
+        token->pos.row = l->line;
+        token->pos.col = l->cursor - l->bol;
+        while (l->cursor < l->content_len && !isspace(CUR))
+        {
+            token->text_len += 1;
+            lexer_eat(l, 1);
+        }
+        if (token->text_len == 1)
+        {
+            ptrtoken_error(token, "wrong percent directive", NULL);
+        }
+        return true;
+    }
+    return false;
+}
 static bool collect_task_spaces(Lexer_t *l, Token *token)
 {
     if (can_look_back(l) && look_back(l) == '\n')
@@ -429,6 +471,7 @@ static bool collect_literals(Lexer_t *l, Token *token)
             token->text_len = text_len;
             token->pos.row = l->line;
             token->pos.col = l->cursor - l->bol;
+            l->is_var_decl = true;
             lexer_eat(l, text_len);
             return true;
         }
