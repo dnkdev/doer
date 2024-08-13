@@ -20,26 +20,28 @@ AstNode_t *ast_new_node(Ast_t *ast, AstNode_t node)
     if (ast->nodes_count > 1)
     {
         AstNode_t *temp = realloc(ast->nodes, ast->nodes_count * sizeof(AstNode_t));
-        if (temp == NULL)
-        {
-            error("Memory allocation failed!", NULL);
-            return NULL;
-        }
+        MEM_REALLOC_CHECK(temp);
         ast->nodes = temp;
     }
     ast->nodes[ast->nodes_count - 1] = node;
 
+    printf("creating %s\n", ast_kind_name(node.kind));
     switch (node.kind)
     {
+    case AST_PERCENT:
+    {
+        AstNode_t **temp = realloc(ast->percent_dvs, (ast->percent_dvs_len + 1) * sizeof(AstNode_t *));
+        MEM_REALLOC_CHECK(temp);
+        ast->percent_dvs = temp;
+        ast->percent_dvs[ast->percent_dvs_len] = &ast->nodes[ast->nodes_count - 1];
+        ast->percent_dvs_len += 1;
+        return &ast->nodes[ast->nodes_count - 1];
+    }
+    break;
     case AST_VAR_DECL:
     {
-        printf("creating var decl\n");
         AstNode_t **temp = realloc(ast->variables, (ast->variables_len + 1) * sizeof(AstNode_t *));
-        if (temp == NULL)
-        {
-            error("Memory reallocation failed!", NULL);
-            return NULL;
-        }
+        MEM_REALLOC_CHECK(temp);
         ast->variables = temp;
         ast->variables[ast->variables_len] = &ast->nodes[ast->nodes_count - 1];
         ast->variables_len += 1;
@@ -47,18 +49,15 @@ AstNode_t *ast_new_node(Ast_t *ast, AstNode_t node)
     }
     break;
     case AST_STRING:
-        printf("creating string\n");
+    {
         AstNode_t **temp = realloc(ast->strings, (ast->strings_len + 1) * sizeof(AstNode_t *));
-        if (temp == NULL)
-        {
-            error("Memory reallocation failed!", NULL);
-            return NULL;
-        }
+        MEM_REALLOC_CHECK(temp);
         ast->strings = temp;
         ast->strings[ast->strings_len] = &ast->nodes[ast->nodes_count - 1];
         ast->strings_len += 1;
         return &ast->nodes[ast->nodes_count - 1];
-        break;
+    }
+    break;
     default:
         error("unimplemented other ast kinds: (%s)", ast_kind_name(node.kind));
         break;

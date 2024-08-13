@@ -95,6 +95,17 @@ static bool parse_percent_directive(Parser_t *p, Ast_t *ast)
 {
     if (p->cur->kind == TOKEN_PERCENT)
     {
+        char *string = malloc(sizeof(char) * p->cur->text_len);
+        strncpy(string, p->cur->text + 1, p->cur->text_len - 1);
+        string[p->cur->text_len - 1] = '\0';
+        AstNode_t *node =
+            ast_new_node(ast, (struct AstNode_t){
+                                  .text = p->cur->text,
+                                  .len = p->cur->text_len,
+                                  .kind = AST_PERCENT,
+                                  .data.AST_PERCENT = (struct AST_PERCENT){
+                                      .value = string}});
+
         // char name[MAX_PERCENT_DIRECTIVE_NAME + 1];
         // char *text = p->cur->text;
         // size_t text_len = p->cur->text_len;
@@ -105,8 +116,8 @@ static bool parse_percent_directive(Parser_t *p, Ast_t *ast)
         // *ast = AST_NEW_NODE(*ast, AST_PERCENT, malloc(sizeof(char) * text_len + 1));
         // strncpy((*ast)->data.AST_PERCENT.value, text, text_len);
         // (*ast)->data.AST_PERCENT.value[text_len] = '\0';
-        // parser_eat(p, TOKEN_PERCENT);
-        // return true;
+        parser_eat(p, TOKEN_PERCENT);
+        return true;
     }
     return false;
 }
@@ -143,17 +154,29 @@ static bool parse_var_decl(Parser_t *p, Ast_t *ast)
                     //                                              malloc(sizeof(char) * p->cur->text_len + 1))));
                     char *name = malloc(sizeof(char) * name_token->text_len + 1);
                     char *string = malloc(sizeof(char) * p->cur->text_len + 1);
-                    AstNode_t *node = ast_new_node(ast,
-                                                   (struct AstNode_t){
-                                                       .kind = AST_VAR_DECL,
-                                                       .data.AST_VAR_DECL = (struct AST_VAR_DECL){
-                                                           name,
-                                                           ast_new_node(ast, (struct AstNode_t){
-                                                                                 .kind = AST_STRING,
-                                                                                 .data.AST_STRING = (struct AST_STRING){
-                                                                                     string}})}});
+                    strncpy(name, name_token->text, (int)name_token->text_len);
+                    strncpy(string, p->cur->text, (int)p->cur->text_len);
+                    name[name_token->text_len] = '\0';
+                    string[p->cur->text_len] = '\0';
+                    AstNode_t *string_node =
+                        ast_new_node(ast, (struct AstNode_t){
+                                              .text = p->cur->text,
+                                              .len = p->cur->text_len,
+                                              .kind = AST_STRING,
+                                              .data.AST_STRING = (struct AST_STRING){
+                                                  .value = string}});
+                    AstNode_t *node =
+                        ast_new_node(ast, (struct AstNode_t){
+                                              .text = name_token->text,
+                                              .len = p->cur->text - name_token->text + p->cur->text_len,
+                                              .kind = AST_VAR_DECL,
+                                              .data.AST_VAR_DECL = (struct AST_VAR_DECL){
+                                                  .name = name,
+                                                  .value = string_node}});
 
-                    printf("created node: `%s`\n", ast_kind_name(node->kind));
+                    // node->data.AST_VAR_DECL.name = name;
+                    // node->data.AST_VAR_DECL.value->data.AST_STRING.value = string;
+
                     // strncpy(node->data.AST_VAR_DECL.name, name_token->text, (int)name_token->text_len);
                     // strncpy(node->data.AST_VAR_DECL.value->data.AST_STRING.value, p->cur->text, (int)p->cur->text_len);
                     // node->data.AST_VAR_DECL.value->data.AST_STRING.value[p->cur->text_len] = '\0';

@@ -20,7 +20,7 @@ typedef enum
 
 typedef enum
 {
-    AST_COMMAND,
+    AST_COMMAND = 0,
     AST_VAR_DECL,
     AST_VAR,
     AST_PERCENT,
@@ -128,5 +128,12 @@ AstNode_t *ast_new_node(Ast_t *ast, AstNode_t node);
 #define AST_NEW_NODE(ast, t, ...) ast_new_node(ast, (struct AstNode_t){.kind = t, .data.t = (struct t){__VA_ARGS__}})
 
 const char *ast_kind_name(AstKind k);
+
+#define MEM_REALLOC_CHECK(x)                        \
+    if (x == NULL)                                  \
+    {                                               \
+        error("Memory reallocation failed!", NULL); \
+        return NULL;                                \
+    }
 
 #endif //_AST_H

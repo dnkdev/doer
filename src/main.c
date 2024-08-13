@@ -26,7 +26,7 @@ int main(int c, char *argv[])
     free(lexer);
     // Interpret_t *inter = inter_new();
     size_t node_count = parser_parse(p, ast);
-    printf("Total nodes: %zu", node_count);
+    printf("Total nodes: %zu\n", node_count);
     free(p->content);
     free(p);
     free(tokens);

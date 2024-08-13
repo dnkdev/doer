@@ -10,5 +10,5 @@ task: dependent tasks
     declaration
     expressions
     statements
-    super functions
+    functions
     tasks
