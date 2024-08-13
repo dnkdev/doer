@@ -4,6 +4,7 @@
 #include "common.h"
 #include "lexer.h"
 #include "parser.h"
+#include "interpret.h"
 
 int main(int c, char *argv[])
 {
@@ -22,8 +23,10 @@ int main(int c, char *argv[])
     Lexer_t *lexer = lexer_collect_file(file_name, &tokens, &token_count);
     Parser_t *p = parser_new(lexer, tokens, token_count);
     free(lexer);
-    size_t node_count = parser_parse(p);
+    Interpret_t *inter = inter_new();
+    size_t node_count = parser_parse(p, inter);
     free(p->content);
     free(p);
     free(tokens);
+    free_interpreter(&inter);
 }

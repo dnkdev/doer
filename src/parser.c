@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "ast.h"
+#include "interpret.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -50,17 +51,15 @@ bool parser_next(Parser_t *p, Ast_t **ast)
         return true;
     else
     {
-        if (p->cur->kind != TOKEN_NEWLINE)
+        if (p->cur->kind != TOKEN_NEWLINE && p->cur->kind != TOKEN_SPACE && p->cur->kind != TOKEN_END)
         {
             parser_ptrtoken_error(p, p->cur, "unhandled token `%.*s` (%s)", (int)p->cur->text_len, p->cur->text, token_kind_name(p->cur->kind));
         }
     }
     return false;
 }
-size_t parser_parse(Parser_t *p)
+size_t parser_parse(Parser_t *p, Interpret_t *inter)
 {
-    size_t node_count;
-    Ast_t *ast = malloc(sizeof(Ast_t));
     while (p->cursor < p->token_count)
     {
         switch (p->cur->kind)
@@ -71,17 +70,15 @@ size_t parser_parse(Parser_t *p)
             parser_advance(p, 1);
             continue;
             break;
+        case TOKEN_END:
+            return inter->node_count;
         default:
             break;
         }
-        if (p->cur->kind == TOKEN_END)
+        if (parser_next(p, &inter->ast))
         {
-            return node_count;
-        }
-        if (parser_next(p, &ast))
-        {
-            printf("added node: %s; %.*s\n", ast_kind_name(ast->kind), (int)ast->len, ast->text);
-            node_count++;
+            printf("added node: %s; %.*s\n", ast_kind_name(inter->ast->kind), (int)inter->ast->len, inter->ast->text);
+            inter_collect(inter);
             parser_advance(p, 1);
         }
         // Token t = *p->cur;
@@ -93,12 +90,20 @@ static bool parse_percent_directive(Parser_t *p, Ast_t **ast)
 {
     if (p->cur->kind == TOKEN_PERCENT)
     {
-        parser_eat(p, TOKEN_PERCENT);
-        while (p->cur->kind != TOKEN_SPACE && p->cur->kind != TOKEN_NEWLINE && p->cur->kind != TOKEN_END)
+        char name[MAX_PERCENT_DIRECTIVE_NAME + 1];
+        char *text = p->cur->text;
+        size_t text_len = p->cur->text_len;
+        if (text_len > MAX_PERCENT_DIRECTIVE_NAME)
         {
-            parser_eat(p, TOKEN_SYMBOL);
+            parser_ptrtoken_error(p, p->cur, "percent directive name too long, max: %d", MAX_PERCENT_DIRECTIVE_NAME);
         }
+        *ast = AST_NEW(AST_PERCENT, malloc(sizeof(char) * text_len + 1));
+        strncpy((*ast)->data.AST_PERCENT.value, text, text_len);
+        (*ast)->data.AST_PERCENT.value[text_len] = '\0';
+        parser_eat(p, TOKEN_PERCENT);
+        return true;
     }
+    return false;
 }
 static bool parse_var_decl(Parser_t *p, Ast_t **ast)
 {

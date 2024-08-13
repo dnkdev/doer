@@ -18,6 +18,8 @@ const char *ast_kind_name(AstKind k)
         return "variable";
     case AST_VAR_DECL:
         return "var decl";
+    case AST_PERCENT:
+        return "percent directive";
     case AST_STRING:
         return "string";
     case AST_EXPRESSION:
@@ -32,7 +34,5 @@ const char *ast_kind_name(AstKind k)
         return "task";
     case AST_CONDITION:
         return "condition";
-    default:
-        return "unnamed";
     }
 }

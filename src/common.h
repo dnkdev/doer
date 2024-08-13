@@ -1,6 +1,8 @@
 #ifndef _COMMON_H
 #define _COMMON_H
 
+#include <stdio.h>
+
 #define UNIMPLEMENTED(...)                                                                                            \
     do                                                                                                                \
     {                                                                                                                 \
