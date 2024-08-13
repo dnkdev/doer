@@ -22,6 +22,7 @@ typedef enum
     AST_COMMAND,
     AST_VAR_DECL,
     AST_VAR,
+    AST_PERCENT,
     AST_STRING,
     AST_EXPRESSION,
     AST_ASSIGN,
@@ -47,6 +48,10 @@ typedef union
     {
         char *name;
     } AST_VAR;
+    struct AST_PERCENT
+    {
+        char *value;
+    } AST_PERCENT;
     struct AST_STRING
     {
         char *value;

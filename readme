@@ -1,3 +1,10 @@
+@first_param
+$func_name:
+    if ${first_param} == "Hello World" {
+		echo ${first_param}
+	}
+
+
 task: dependent tasks
     command
     declaration

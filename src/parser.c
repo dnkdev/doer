@@ -43,7 +43,8 @@ void parser_advance(Parser_t *p, int count)
 bool parser_next(Parser_t *p, Ast_t **ast)
 {
     if (
-        parse_var_decl(p, ast))
+        parse_var_decl(p, ast) ||
+        parse_percent_directive(p, ast))
         // parse_var(p, ast) ||
         // parse_func_call(p, ast))
         return true;
@@ -87,6 +88,17 @@ size_t parser_parse(Parser_t *p)
         // fprintf(stdout, "(%s) %.*s %s\n", ast_kind_name(ast.kind), (int)t.text_len, t.text, token_kind_name(t.kind));
     }
     return 0;
+}
+static bool parse_percent_directive(Parser_t *p, Ast_t **ast)
+{
+    if (p->cur->kind == TOKEN_PERCENT)
+    {
+        parser_eat(p, TOKEN_PERCENT);
+        while (p->cur->kind != TOKEN_SPACE && p->cur->kind != TOKEN_NEWLINE && p->cur->kind != TOKEN_END)
+        {
+            parser_eat(p, TOKEN_SYMBOL);
+        }
+    }
 }
 static bool parse_var_decl(Parser_t *p, Ast_t **ast)
 {

@@ -28,6 +28,7 @@ static size_t peek_through_blankspaces(Parser_t *p, Token *token);
 
 static bool parse_func_call(Parser_t *p, Ast_t **ast);
 static bool parse_var_decl(Parser_t *p, Ast_t **ast);
+static bool parse_percent_directive(Parser_t *p, Ast_t **ast);
 static bool parse_var(Parser_t *p, Ast_t **ast);
 
 #define parser_ptrtoken_error(p, t, s, ...)                                                                                               \
