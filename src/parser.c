@@ -40,13 +40,13 @@ void parser_advance(Parser_t *p, int count)
     p->cur = &p->tokens[p->cursor];
     p->next = (can_parse(p, 1)) ? (&p->tokens[p->cursor + 1]) : (&CUR); // p->tokens[p->cursor];
 }
-void parser_next(Parser_t *p, Ast_t *ast)
+bool parser_next(Parser_t *p, Ast_t **ast)
 {
     if (
-        parse_var_decl(p, ast) ||
-        parse_var(p, ast) ||
-        parse_func_call(p, ast))
-        return;
+        parse_var_decl(p, ast))
+        // parse_var(p, ast) ||
+        // parse_func_call(p, ast))
+        return true;
     else
     {
         if (p->cur->kind != TOKEN_NEWLINE)
@@ -54,27 +54,41 @@ void parser_next(Parser_t *p, Ast_t *ast)
             parser_ptrtoken_error(p, p->cur, "unhandled token `%.*s` (%s)", (int)p->cur->text_len, p->cur->text, token_kind_name(p->cur->kind));
         }
     }
+    return false;
 }
 size_t parser_parse(Parser_t *p)
 {
     size_t node_count;
-    Ast_t ast;
+    Ast_t *ast = malloc(sizeof(Ast_t));
     while (p->cursor < p->token_count)
     {
-
-        parser_next(p, &ast);
+        switch (p->cur->kind)
+        {
+        case TOKEN_NEWLINE:
+        case TOKEN_SPACE:
+        case TOKEN_TABSPACE:
+            parser_advance(p, 1);
+            continue;
+            break;
+        default:
+            break;
+        }
         if (p->cur->kind == TOKEN_END)
         {
             return node_count;
         }
-        node_count++;
-        Token t = p->tokens[p->cursor];
-        fprintf(stdout, "(%s) %.*s %s\n", ast_kind_name(ast.kind), (int)t.text_len, t.text, token_kind_name(t.kind));
-        parser_advance(p, 1);
+        if (parser_next(p, &ast))
+        {
+            printf("added node: %s; %.*s\n", ast_kind_name(ast->kind), (int)ast->len, ast->text);
+            node_count++;
+            parser_advance(p, 1);
+        }
+        // Token t = *p->cur;
+        // fprintf(stdout, "(%s) %.*s %s\n", ast_kind_name(ast.kind), (int)t.text_len, t.text, token_kind_name(t.kind));
     }
     return 0;
 }
-static bool parse_var_decl(Parser_t *p, Ast_t *ast)
+static bool parse_var_decl(Parser_t *p, Ast_t **ast)
 {
     if (p->cur->kind == TOKEN_SYMBOL)
     {
@@ -100,14 +114,16 @@ static bool parse_var_decl(Parser_t *p, Ast_t *ast)
                 }
                 if (p->cur->kind == TOKEN_STRING)
                 {
-                    ast = AST_NEW(AST_VAR_DECL,
-                                  malloc(sizeof(char) * name_token->text_len + 1),
-                                  AST_NEW(AST_STRING, malloc(sizeof(char) * p->cur->text_len + 1)));
+                    *ast = AST_NEW(AST_VAR_DECL,
+                                   malloc(sizeof(char) * name_token->text_len + 1),
+                                   AST_NEW(AST_STRING, malloc(sizeof(char) * p->cur->text_len + 1)));
 
-                    strncpy(ast->data.AST_VAR_DECL.name, name_token->text, (int)name_token->text_len);
-                    strncpy(ast->data.AST_VAR_DECL.value->data.AST_STRING.value, p->cur->text, (int)p->cur->text_len);
-                    ast->data.AST_VAR_DECL.value->data.AST_STRING.value[p->cur->text_len] = '\0';
-                    ast->data.AST_VAR_DECL.name[name_token->text_len] = '\0';
+                    strncpy((*ast)->data.AST_VAR_DECL.name, name_token->text, (int)name_token->text_len);
+                    strncpy((*ast)->data.AST_VAR_DECL.value->data.AST_STRING.value, p->cur->text, (int)p->cur->text_len);
+                    (*ast)->data.AST_VAR_DECL.value->data.AST_STRING.value[p->cur->text_len] = '\0';
+                    (*ast)->data.AST_VAR_DECL.name[name_token->text_len] = '\0';
+                    (*ast)->len = p->cur->text - name_token->text + p->cur->text_len;
+                    (*ast)->text = name_token->text;
                     parser_eat(p, TOKEN_STRING);
                     return true;
                 }
@@ -117,14 +133,14 @@ static bool parse_var_decl(Parser_t *p, Ast_t *ast)
                 }
             }
         }
-        else
-        {
-            parser_ptrtoken_error(p, p->cur, "can't parse", NULL);
-        }
+        // else
+        // {
+        //     parser_ptrtoken_error(p, p->cur, "can't parse", NULL);
+        // }
     }
     return false;
 }
-static bool parse_var(Parser_t *p, Ast_t *ast)
+static bool parse_var(Parser_t *p, Ast_t **ast)
 {
     if (CUR.kind == TOKEN_SYMBOL)
     {
@@ -133,7 +149,7 @@ static bool parse_var(Parser_t *p, Ast_t *ast)
     }
     return false;
 }
-static bool parse_func_call(Parser_t *p, Ast_t *ast)
+static bool parse_func_call(Parser_t *p, Ast_t **ast)
 {
     if (CUR.kind == TOKEN_DOLLAR)
     {
