@@ -1,6 +1,5 @@
 #include "parser.h"
 #include "ast.h"
-#include "interpret.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -41,7 +40,7 @@ void parser_advance(Parser_t *p, int count)
     p->cur = &p->tokens[p->cursor];
     p->next = (can_parse(p, 1)) ? (&p->tokens[p->cursor + 1]) : (&CUR); // p->tokens[p->cursor];
 }
-bool parser_next(Parser_t *p, Ast_t **ast)
+bool parser_next(Parser_t *p, Ast_t *ast)
 {
     if (
         parse_var_decl(p, ast) ||
@@ -58,7 +57,7 @@ bool parser_next(Parser_t *p, Ast_t **ast)
     }
     return false;
 }
-size_t parser_parse(Parser_t *p, Interpret_t *inter)
+size_t parser_parse(Parser_t *p, Ast_t *ast)
 {
     while (p->cursor < p->token_count)
     {
@@ -71,41 +70,47 @@ size_t parser_parse(Parser_t *p, Interpret_t *inter)
             continue;
             break;
         case TOKEN_END:
-            return inter->node_count;
+            return ast->nodes_count;
         default:
+            if (parser_next(p, ast))
+            {
+                printf("parsed good %s\n", token_kind_name(p->cur->kind));
+                // printf("added node: %s; %.*s\n", ast_kind_name(inter->ast->kind), (int)inter->ast->len, inter->ast->text);
+                //     // inter_collect(inter);
+                parser_advance(p, 1);
+            }
+            else
+            {
+
+                printf("parsed bad\n");
+            }
             break;
-        }
-        if (parser_next(p, &inter->ast))
-        {
-            printf("added node: %s; %.*s\n", ast_kind_name(inter->ast->kind), (int)inter->ast->len, inter->ast->text);
-            inter_collect(inter);
-            parser_advance(p, 1);
         }
         // Token t = *p->cur;
         // fprintf(stdout, "(%s) %.*s %s\n", ast_kind_name(ast.kind), (int)t.text_len, t.text, token_kind_name(t.kind));
     }
     return 0;
 }
-static bool parse_percent_directive(Parser_t *p, Ast_t **ast)
+static bool parse_percent_directive(Parser_t *p, Ast_t *ast)
 {
     if (p->cur->kind == TOKEN_PERCENT)
     {
-        char name[MAX_PERCENT_DIRECTIVE_NAME + 1];
-        char *text = p->cur->text;
-        size_t text_len = p->cur->text_len;
-        if (text_len > MAX_PERCENT_DIRECTIVE_NAME)
-        {
-            parser_ptrtoken_error(p, p->cur, "percent directive name too long, max: %d", MAX_PERCENT_DIRECTIVE_NAME);
-        }
-        *ast = AST_NEW(AST_PERCENT, malloc(sizeof(char) * text_len + 1));
-        strncpy((*ast)->data.AST_PERCENT.value, text, text_len);
-        (*ast)->data.AST_PERCENT.value[text_len] = '\0';
-        parser_eat(p, TOKEN_PERCENT);
-        return true;
+        // char name[MAX_PERCENT_DIRECTIVE_NAME + 1];
+        // char *text = p->cur->text;
+        // size_t text_len = p->cur->text_len;
+        // if (text_len > MAX_PERCENT_DIRECTIVE_NAME)
+        // {
+        //     parser_ptrtoken_error(p, p->cur, "percent directive name too long, max: %d", MAX_PERCENT_DIRECTIVE_NAME);
+        // }
+        // *ast = AST_NEW_NODE(*ast, AST_PERCENT, malloc(sizeof(char) * text_len + 1));
+        // strncpy((*ast)->data.AST_PERCENT.value, text, text_len);
+        // (*ast)->data.AST_PERCENT.value[text_len] = '\0';
+        // parser_eat(p, TOKEN_PERCENT);
+        // return true;
     }
     return false;
 }
-static bool parse_var_decl(Parser_t *p, Ast_t **ast)
+static bool parse_var_decl(Parser_t *p, Ast_t *ast)
 {
     if (p->cur->kind == TOKEN_SYMBOL)
     {
@@ -131,22 +136,47 @@ static bool parse_var_decl(Parser_t *p, Ast_t **ast)
                 }
                 if (p->cur->kind == TOKEN_STRING)
                 {
-                    *ast = AST_NEW(AST_VAR_DECL,
-                                   malloc(sizeof(char) * name_token->text_len + 1),
-                                   AST_NEW(AST_STRING, malloc(sizeof(char) * p->cur->text_len + 1)));
+                    // ast_new_node(ast, (struct AstNode_t){.kind = t, .data.t = (struct t){__VA_ARGS__}})
+                    // AstNode_t *node = AST_NEW_NODE(ast, AST_VAR_DECL,
+                    //                                (malloc(sizeof(char) * name_token->text_len + 1)),
+                    //                                (AST_NEW_NODE(ast, AST_STRING,
+                    //                                              malloc(sizeof(char) * p->cur->text_len + 1))));
+                    char *name = malloc(sizeof(char) * name_token->text_len + 1);
+                    char *string = malloc(sizeof(char) * p->cur->text_len + 1);
+                    AstNode_t *node = ast_new_node(ast,
+                                                   (struct AstNode_t){
+                                                       .kind = AST_VAR_DECL,
+                                                       .data.AST_VAR_DECL = (struct AST_VAR_DECL){
+                                                           name,
+                                                           ast_new_node(ast, (struct AstNode_t){
+                                                                                 .kind = AST_STRING,
+                                                                                 .data.AST_STRING = (struct AST_STRING){
+                                                                                     string}})}});
 
-                    strncpy((*ast)->data.AST_VAR_DECL.name, name_token->text, (int)name_token->text_len);
-                    strncpy((*ast)->data.AST_VAR_DECL.value->data.AST_STRING.value, p->cur->text, (int)p->cur->text_len);
-                    (*ast)->data.AST_VAR_DECL.value->data.AST_STRING.value[p->cur->text_len] = '\0';
-                    (*ast)->data.AST_VAR_DECL.name[name_token->text_len] = '\0';
-                    (*ast)->len = p->cur->text - name_token->text + p->cur->text_len;
-                    (*ast)->text = name_token->text;
+                    printf("created node: `%s`\n", ast_kind_name(node->kind));
+                    // strncpy(node->data.AST_VAR_DECL.name, name_token->text, (int)name_token->text_len);
+                    // strncpy(node->data.AST_VAR_DECL.value->data.AST_STRING.value, p->cur->text, (int)p->cur->text_len);
+                    // node->data.AST_VAR_DECL.value->data.AST_STRING.value[p->cur->text_len] = '\0';
+                    // node->data.AST_VAR_DECL.name[name_token->text_len] = '\0';
+                    // node->len = p->cur->text - name_token->text + p->cur->text_len;
+                    // node->text = name_token->text;
                     parser_eat(p, TOKEN_STRING);
+                    // *ast = AST_NEW(AST_VAR_DECL,
+                    //                malloc(sizeof(char) * name_token->text_len + 1),
+                    //                AST_NEW(AST_STRING, malloc(sizeof(char) * p->cur->text_len + 1)));
+
+                    // strncpy((*ast)->data.AST_VAR_DECL.name, name_token->text, (int)name_token->text_len);
+                    // strncpy((*ast)->data.AST_VAR_DECL.value->data.AST_STRING.value, p->cur->text, (int)p->cur->text_len);
+                    // (*ast)->nodes[].data.AST_VAR_DECL.value->data.AST_STRING.value[p->cur->text_len] = '\0';
+                    // (*ast)->data.AST_VAR_DECL.name[name_token->text_len] = '\0';
+                    // (*ast)->len = p->cur->text - name_token->text + p->cur->text_len;
+                    // (*ast)->text = name_token->text;
+                    // parser_eat(p, TOKEN_STRING);
                     return true;
                 }
                 else
                 {
-                    parser_ptrtoken_error(p, p->cur, "can't parse declaration", NULL);
+                    parser_ptrtoken_error(p, p->cur, "can't parse declaration, expected string", NULL);
                 }
             }
         }

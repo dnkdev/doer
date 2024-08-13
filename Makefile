@@ -1,4 +1,4 @@
-preq := src/main.c src/lexer.c src/parser.c src/ast.c src/interpret.c
+preq := src/main.c src/lexer.c src/parser.c src/ast.c
 exe := do
 cc := clang
 

@@ -3,6 +3,7 @@
 
 #include <stdlib.h>
 #include "lexer.h"
+#include "common.h"
 
 typedef enum
 {
@@ -42,7 +43,7 @@ typedef union
     struct AST_VAR_DECL
     {
         char *name;
-        struct Ast_t *value;
+        struct AstNode_t *value;
     } AST_VAR_DECL;
     struct AST_VAR
     {
@@ -58,8 +59,8 @@ typedef union
     } AST_STRING;
     struct AST_EXPRESSION
     {
-        struct Ast_t *left;
-        struct Ast_t *right;
+        struct AstNode_t *left;
+        struct AstNode_t *right;
     } AST_EXPRESSION;
     struct AST_ASSIGN
     {
@@ -69,42 +70,62 @@ typedef union
     struct AST_FUNC_CALL
     {
         const char *name;
-        struct Ast_t **arguments;
+        struct AstNode_t **arguments;
         size_t arg_count;
     } AST_FUNC_CALL;
     struct AST_FUNC_DECL
     {
         char *name;
-        struct Ast_t **arguments;
+        struct AstNode_t **arguments;
         size_t arg_count;
-        struct Ast_t **nodes;
+        struct AstNode_t **nodes;
 
     } AST_FUNC_DECL;
     struct AST_TASK
     {
         char *name;
-        struct Ast_t **dependents;
+        struct AstNode_t **dependents;
         size_t dependents_len;
-        struct Ast_t **nodes;
+        struct AstNode_t **nodes;
     } AST_TASK;
     struct AST_CONDITION
     {
-        struct Ast_t *left;
-        struct Ast_t *right;
+        struct AstNode_t *left;
+        struct AstNode_t *right;
         LogicalOperator op;
     } AST_CONDITION;
 } AstKind_u;
 
-typedef struct Ast_t
+typedef struct AstNode_t
 {
     AstKind kind;
     AstKind_u data;
     char *text;
     size_t len;
+} AstNode_t;
+
+typedef struct Ast_t
+{
+    AstNode_t *nodes;
+    size_t nodes_count;
+
+    AstNode_t **commands;
+    size_t commands_len;
+    AstNode_t **variables;
+    size_t variables_len;
+    AstNode_t **percent_dvs;
+    size_t percent_dvs_len;
+    AstNode_t **strings;
+    size_t strings_len;
+    AstNode_t **tasks;
+    size_t tasks_len;
+    AstNode_t **functions;
+    size_t functions_len;
 } Ast_t;
 
-Ast_t *ast_new(Ast_t ast);
-#define AST_NEW(t, ...) ast_new((struct Ast_t){.kind = t, .data.t = (struct t){__VA_ARGS__}})
+Ast_t *ast_new();
+AstNode_t *ast_new_node(Ast_t *ast, AstNode_t node);
+#define AST_NEW_NODE(ast, t, ...) ast_new_node(ast, (struct AstNode_t){.kind = t, .data.t = (struct t){__VA_ARGS__}})
 
 const char *ast_kind_name(AstKind k);
 

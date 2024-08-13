@@ -19,7 +19,7 @@ typedef struct
 } Parser_t;
 
 Parser_t *parser_new(Lexer_t *l, Token *tokens, size_t token_count);
-size_t parser_parse(Parser_t *p, Interpret_t *inter);
+size_t parser_parse(Parser_t *p, Ast_t *ast);
 void parser_advance(Parser_t *p, int count);
 static Token look(Parser_t *p, int count);
 static size_t peek_to(Parser_t *p, TokenKind kind, Token *t);
@@ -29,8 +29,8 @@ static size_t peek_through_blankspaces(Parser_t *p, Token *token);
 #define MAX_PERCENT_DIRECTIVE_NAME 8
 
 static bool parse_func_call(Parser_t *p, Ast_t **ast);
-static bool parse_var_decl(Parser_t *p, Ast_t **ast);
-static bool parse_percent_directive(Parser_t *p, Ast_t **ast);
+static bool parse_var_decl(Parser_t *p, Ast_t *ast);
+static bool parse_percent_directive(Parser_t *p, Ast_t *ast);
 static bool parse_var(Parser_t *p, Ast_t **ast);
 
 #define parser_ast_error(p, ast, ...)                               \
