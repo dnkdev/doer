@@ -41,12 +41,12 @@
 #define TERM_HIDE "\033[8m"
 #define TERM_CROSSED "\033[9m"
 
-#define error(s, ...)                                                                                                           \
-    fprintf(stderr, "%s:%d:%s" TERM_RED TERM_BOLD " error: " TERM_RESET s "\n", __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__); \
+#define error(s, ...)                                                                                                                                 \
+    fprintf(stderr, TERM_RED TERM_BOLD "error: " TERM_RESET TERM_BOLD "%s:%d:%s: " s TERM_RESET "\n", __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__); \
     exit(1);
 
-#define warning(s, ...)                                                                                                               \
-    fprintf(stderr, "%s:%d:%s" TERM_MAGENTA TERM_BOLD " warning: " TERM_RESET s "\n", __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__); \
+#define warning(s, ...)                                                                                                                                      \
+    fprintf(stderr, TERM_MAGENTA TERM_BOLD " warning: " TERM_RESET TERM_BOLD "%s:%d:%s: " s TERM_RESET "\n", __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__); \
     exit(1);
 
 #define is_space(x) (x == ' ') || (x == '\t')

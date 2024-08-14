@@ -28,6 +28,26 @@ AstNode_t *ast_new_node(Ast_t *ast, AstNode_t node)
     printf("creating %s: %.*s\n", ast_kind_name(node.kind), (int)node.len, node.text);
     switch (node.kind)
     {
+    case AST_TASK_DECL:
+    {
+        AstNode_t **temp = realloc(ast->tasks, (ast->tasks_len + 1) * sizeof(AstNode_t *));
+        MEM_REALLOC_CHECK(temp);
+        ast->tasks = temp;
+        ast->tasks[ast->tasks_len] = &ast->nodes[ast->nodes_count - 1];
+        ast->tasks_len += 1;
+        return &ast->nodes[ast->nodes_count - 1];
+    }
+    break;
+    case AST_COMMAND:
+    {
+        AstNode_t **temp = realloc(ast->commands, (ast->commands_len + 1) * sizeof(AstNode_t *));
+        MEM_REALLOC_CHECK(temp);
+        ast->commands = temp;
+        ast->commands[ast->commands_len] = &ast->nodes[ast->nodes_count - 1];
+        ast->commands_len += 1;
+        return &ast->nodes[ast->nodes_count - 1];
+    }
+    break;
     case AST_FUNC_CALL:
     {
         // AstNode_t **temp = realloc(ast->percent_dvs, (ast->percent_dvs_len + 1) * sizeof(AstNode_t *));
@@ -93,8 +113,10 @@ const char *ast_kind_name(AstKind k)
         return "func call";
     case AST_FUNC_DECL:
         return "func decl";
-    case AST_TASK:
-        return "task";
+    case AST_TASK_CALL:
+        return "task call";
+    case AST_TASK_DECL:
+        return "task decl";
     case AST_CONDITION:
         return "condition";
     }

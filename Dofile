@@ -1,4 +1,8 @@
 a := run b
 $(search    *.txt  "/")
 
+build: hello.sd mananana
+	b := ${c}
+	gcc main.c
+
 %0 %1 

@@ -29,7 +29,8 @@ typedef enum
     AST_ASSIGN,
     AST_FUNC_CALL,
     AST_FUNC_DECL,
-    AST_TASK,
+    AST_TASK_CALL,
+    AST_TASK_DECL,
     AST_CONDITION,
 } AstKind;
 
@@ -38,7 +39,6 @@ typedef union
     struct AST_COMMAND
     {
         char *text;
-        size_t text_len;
     } AST_COMMAND;
     struct AST_VAR_DECL
     {
@@ -80,13 +80,21 @@ typedef union
         size_t arg_count;
 
     } AST_FUNC_DECL;
-    struct AST_TASK
+    struct AST_TASK_CALL
     {
         char *name;
         struct AstNode_t **dependents;
         size_t dependents_len;
         struct AstNode_t **nodes;
-    } AST_TASK;
+    } AST_TASK_CALL;
+    struct AST_TASK_DECL
+    {
+        char *name;
+        char **dependents;
+        size_t dependents_len;
+        struct AstNode_t **orders;
+        size_t order_count;
+    } AST_TASK_DECL;
     struct AST_CONDITION
     {
         struct AstNode_t *left;

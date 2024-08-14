@@ -4,7 +4,7 @@
 #include <string.h>
 
 #define CUR p->cur
-#define can_parse(p, x) p->token_count > p->cursor + x
+#define can_parse(p, i) p->token_count > p->cursor + i
 
 Parser_t *parser_new(Lexer_t *l, Token *tokens, size_t token_count)
 {
@@ -14,7 +14,12 @@ Parser_t *parser_new(Lexer_t *l, Token *tokens, size_t token_count)
     p->cursor = 0,
     p->content = l->content,
     p->content_len = l->content_len,
+    p->prev = NULL;
     p->cur = &p->tokens[p->cursor];
+    if (can_parse(p, 1))
+    {
+        p->next = &p->tokens[p->cursor + 1];
+    }
 
     return p;
 }
@@ -42,11 +47,7 @@ void parser_advance(Parser_t *p, int count)
 }
 bool parser_next(Parser_t *p, Ast_t *ast)
 {
-    if (
-        parse_var_decl(p, ast) ||
-        parse_percent_directive(p, ast) ||
-        // parse_var(p, ast) ||
-        parse_func_call(p, ast))
+    if (is_parser_parsed(p, ast))
         return true;
     else
     {
@@ -80,15 +81,160 @@ size_t parser_parse(Parser_t *p, Ast_t *ast)
             }
             else
             {
-
-                printf("parsed bad\n");
+                error("parsed bad\n", NULL);
             }
             break;
         }
     }
     return 0;
 }
-static bool parse_func_call(Parser_t *p, Ast_t *ast)
+
+// commands only in tasks
+static AstNode_t *parse_command(Parser_t *p, Ast_t *ast)
+{
+    char *start = p->cur->text;
+    while (p->cur->kind != TOKEN_NEWLINE)
+    {
+        parser_eat(p, p->cur->kind);
+    }
+    size_t len = p->cur->text - start;
+    char *string = malloc(sizeof(char) * len + 1);
+    strncpy(string, start, len);
+    AstNode_t *node =
+        ast_new_node(ast, (struct AstNode_t){
+                              .text = start,
+                              .len = len,
+                              .kind = AST_COMMAND,
+                              .data.AST_COMMAND = (struct AST_COMMAND){
+                                  .text = string}});
+    printf("NOWW: %s\n", token_kind_name(p->cur->kind));
+    if (node != NULL)
+    {
+        return node;
+    }
+    return NULL;
+}
+static AstNode_t *parse_task_decl(Parser_t *p, Ast_t *ast)
+{
+    if (p->cur->kind == TOKEN_SYMBOL)
+    {
+        bool prev;
+        if (p->prev != NULL)
+        {
+            if (p->prev->kind == TOKEN_NEWLINE)
+            {
+                prev = true;
+            }
+        }
+        else
+        {
+            prev = true;
+        }
+        if (!prev || p->next->kind != TOKEN_COLON)
+        {
+            return NULL;
+        }
+        char *task_start = p->cur->text;
+        char *task_name = malloc(p->cur->text_len * sizeof(char) + 1);
+        strncpy(task_name, p->cur->text, p->cur->text_len);
+        task_name[p->cur->text_len] = '\0';
+        printf("%s | %s | %s\n", token_kind_name(p->prev->kind), token_kind_name(p->cur->kind), token_kind_name(p->next->kind));
+        parser_eat(p, TOKEN_SYMBOL);
+        parser_eat(p, TOKEN_COLON);
+        size_t space_count = 0;
+        Token next;
+        size_t arg_count = 0;
+        // FIX: MAX TASK DEPENDENTS 10 TODO:
+        char **temp_dependent_names = malloc(sizeof(char *) * 1);
+        size_t temp_dependent_names_len = 0;
+        AstNode_t **temp_orders = malloc(sizeof(AstNode_t *) * 1);
+        size_t temp_orders_len = 0;
+        while (can_parse(p, 1) && p->cur->kind != TOKEN_NEWLINE)
+        {
+            if ((space_count = peek_through_blankspaces(p, &next)) != -1)
+            {
+                parser_eat_spaces(p, space_count);
+            }
+            if (p->cur->kind == TOKEN_SPACE)
+            {
+                parser_eat(p, TOKEN_SPACE);
+            }
+            // parse dependents
+            char *start = p->cur->text;
+            while (!is_space_token(p->cur->kind) && p->cur->kind != TOKEN_NEWLINE)
+            {
+                if (p->cur->kind != TOKEN_SYMBOL && p->cur->kind != TOKEN_DOT)
+                {
+                    parser_token_error(p, p->cur, "Unexpected token `%.*s` (%s)", (int)p->cur->text_len, p->cur->text, token_kind_name(p->cur->kind));
+                }
+                parser_eat(p, p->cur->kind);
+            }
+            size_t len = p->cur->text - start;
+            printf("%.*s\n", (int)len, start);
+            char *name = malloc(sizeof(char) * len) + 1;
+            strncpy(name, start, len);
+            name[len] = '\0';
+            temp_dependent_names = realloc(temp_dependent_names, sizeof(char *) * (temp_dependent_names_len + 1));
+            temp_dependent_names[temp_dependent_names_len] = name;
+            temp_dependent_names_len += 1;
+            arg_count += 1;
+        }
+        printf("Arg count: %zu\n", arg_count);
+        parser_eat(p, TOKEN_NEWLINE);
+        // parse task body
+        if (p->cur->kind != TOKEN_TASK_SPACE && p->cur->kind != TOKEN_TASK_TABSPACE)
+        {
+            parser_token_error(p, p->cur, "missing task body", NULL);
+        }
+        TokenKind body_space_kind = p->cur->kind;
+        size_t body_space_kind_len = p->cur->text_len;
+        size_t order_count = 0;
+        while (p->cur->kind == body_space_kind)
+        {
+            parser_eat(p, body_space_kind);
+            printf("start %s\n", token_kind_name(p->cur->kind));
+            AstNode_t *parsed_node = parse_var_decl(p, ast);
+            if (parsed_node == NULL)
+                parsed_node = parse_percent_directive(p, ast);
+            if (parsed_node == NULL)
+                parsed_node = parse_var_decl(p, ast);
+            if (parsed_node == NULL)
+                parsed_node = parse_func_call(p, ast);
+            if (parsed_node == NULL)
+                parsed_node = parse_command(p, ast);
+            if (parsed_node == NULL)
+            {
+                parser_token_error(p, p->cur, "Failed to parse token `%.*s` (%s)", (int)p->cur->text_len, p->cur->text, token_kind_name(p->cur->kind));
+            }
+            // while (is_parser_parsed(p, ast))
+            // {
+            //     printf("ok %s\n", token_kind_name(p->cur->kind));
+            // }
+            temp_orders = realloc(temp_orders, sizeof(AstNode_t) * (temp_orders_len + 1));
+            temp_orders[temp_orders_len] = parsed_node;
+            temp_orders_len += 1;
+            printf("end %s\n", token_kind_name(p->cur->kind));
+            parser_eat(p, TOKEN_NEWLINE);
+            order_count += 1;
+        }
+        size_t len = p->prev->text - task_start;
+        AstNode_t *task_node =
+            ast_new_node(ast, (struct AstNode_t){
+                                  .text = task_start,
+                                  .len = len,
+                                  .kind = AST_TASK_DECL,
+                                  .data.AST_TASK_DECL = (struct AST_TASK_DECL){
+                                      .name = task_name,
+                                      .dependents = temp_dependent_names,
+                                      .dependents_len = temp_dependent_names_len,
+                                      .order_count = order_count,
+                                      .orders = temp_orders}});
+
+        return task_node;
+    }
+    return NULL;
+}
+static AstNode_t *parse_func_call(Parser_t *p, Ast_t *ast)
 {
     if (p->cur->kind == TOKEN_DOLLAR)
     {
@@ -107,7 +253,7 @@ static bool parse_func_call(Parser_t *p, Ast_t *ast)
                     func_name[p->cur->text_len] = '\0';
                     parser_eat(p, TOKEN_SYMBOL);
                     size_t arg_count = 0;
-                    // FIX: TEMPORARY 10 ARGUMENTS MAX
+                    // FIX: TEMPORARY 10 ARGUMENTS MAX TODO:
                     AstNode_t **temp_arguments = malloc(10 * sizeof(AstNode_t *));
                     while (p->cur->kind != TOKEN_CPAREN)
                     {
@@ -149,18 +295,19 @@ static bool parse_func_call(Parser_t *p, Ast_t *ast)
                                                                           .name = func_name,
                                                                           .arguments = arguments,
                                                                           .arg_count = arg_count}});
+
+                    return func_call_node;
                 }
                 else
                 {
                     parser_token_error(p, p->cur, "expected function name, got `%.*s` (%s)", (int)p->cur->text_len, p->cur->text, token_kind_name(p->cur->kind));
                 }
             }
-            return true;
         }
     }
-    return false;
+    return NULL;
 }
-static bool parse_percent_directive(Parser_t *p, Ast_t *ast)
+static AstNode_t *parse_percent_directive(Parser_t *p, Ast_t *ast)
 {
     if (p->cur->kind == TOKEN_PERCENT)
     {
@@ -176,11 +323,11 @@ static bool parse_percent_directive(Parser_t *p, Ast_t *ast)
                                       .value = string}});
 
         parser_eat(p, TOKEN_PERCENT);
-        return true;
+        return node;
     }
-    return false;
+    return NULL;
 }
-static bool parse_var_decl(Parser_t *p, Ast_t *ast)
+static AstNode_t *parse_var_decl(Parser_t *p, Ast_t *ast)
 {
     if (p->cur->kind == TOKEN_SYMBOL)
     {
@@ -229,7 +376,7 @@ static bool parse_var_decl(Parser_t *p, Ast_t *ast)
                                                   .value = string_node}});
 
                     parser_eat(p, TOKEN_STRING);
-                    return true;
+                    return node;
                 }
                 else
                 {
@@ -242,16 +389,7 @@ static bool parse_var_decl(Parser_t *p, Ast_t *ast)
         //     parser_token_error(p, p->cur, "can't parse", NULL);
         // }
     }
-    return false;
-}
-static bool parse_var(Parser_t *p, Ast_t **ast)
-{
-    if (CUR->kind == TOKEN_SYMBOL)
-    {
-
-        return true;
-    }
-    return false;
+    return NULL;
 }
 
 static size_t peek_to(Parser_t *p, TokenKind kind, Token *t)
@@ -294,32 +432,32 @@ static size_t peek_through_blankspaces(Parser_t *p, Token *t)
         }
         i++;
     }
-    for (int i = 1; i < 100; ++i)
-    {
-        if (can_parse(p, i))
-        {
-        }
-    }
-    while (can_parse(p, spaces_count + 1))
-    {
-        printf("can parse, next is: %s\n", token_kind_name(p->tokens[p->cursor + spaces_count + 1].kind));
-        if (p->tokens[p->cursor + spaces_count + 1].kind == TOKEN_SPACE)
-        {
-            spaces_count++;
-            printf("- found space on %zu ", p->cursor + spaces_count);
-            continue;
-        }
-        else if (p->tokens[p->cursor + spaces_count + 1].kind == TOKEN_END)
-        {
-            return -1;
-        }
-        else /// if (can_parse(p, spaces_count))
-        {
-            *t = p->tokens[p->cursor + spaces_count + 1];
-            printf("peeked to `%s` spaces: %zu\n", token_kind_name(t->kind), spaces_count);
-            return spaces_count;
-        }
-    }
+    // for (int i = 1; i < 100; ++i)
+    // {
+    //     if (can_parse(p, i))
+    //     {
+    //     }
+    // }
+    // while (can_parse(p, spaces_count + 1))
+    // {
+    //     printf("can parse, next is: %s\n", token_kind_name(p->tokens[p->cursor + spaces_count + 1].kind));
+    //     if (p->tokens[p->cursor + spaces_count + 1].kind == TOKEN_SPACE)
+    //     {
+    //         spaces_count++;
+    //         printf("- found space on %zu ", p->cursor + spaces_count);
+    //         continue;
+    //     }
+    //     else if (p->tokens[p->cursor + spaces_count + 1].kind == TOKEN_END)
+    //     {
+    //         return -1;
+    //     }
+    //     else /// if (can_parse(p, spaces_count))
+    //     {
+    //         *t = p->tokens[p->cursor + spaces_count + 1];
+    //         printf("peeked to `%s` spaces: %zu\n", token_kind_name(t->kind), spaces_count);
+    //         return spaces_count;
+    //     }
+    // }
     printf("yeo\n");
     return -1;
 }
