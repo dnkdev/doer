@@ -81,4 +81,6 @@ const char *token_kind_name(TokenKind kind);
     fprintf(stderr, "%s:%zu:%zu" TERM_RED TERM_BOLD " error: " TERM_RESET s "\n", t->pos.file_path, t->pos.row, t->pos.col, __VA_ARGS__); \
     exit(1);
 
+#define is_space_token(kind) (kind == TOKEN_SPACE || kind == TOKEN_TABSPACE)
+
 #endif // _LEXER_H

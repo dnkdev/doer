@@ -33,16 +33,18 @@ static bool parse_var_decl(Parser_t *p, Ast_t *ast);
 static bool parse_percent_directive(Parser_t *p, Ast_t *ast);
 static bool parse_var(Parser_t *p, Ast_t **ast);
 
+#define parser_eat_spaces(p, spaces_count) \
+    for (int i = 0; i < spaces_count; i++) \
+    {                                      \
+        parser_eat(p, TOKEN_SPACE);        \
+    }
+
 #define parser_ast_error(p, ast, ...)                               \
     fprintf(stderr, "%.*s", (int)ast->len, ast->text, __VA_ARGS__); \
     exit(1);
 
-#define parser_ptrtoken_error(p, t, s, ...)                                                                                               \
+#define parser_token_error(p, t, s, ...)                                                                                                  \
     fprintf(stderr, "%s:%zu:%zu" TERM_RED TERM_BOLD " error: " TERM_RESET s "\n", t->pos.file_path, t->pos.row, t->pos.col, __VA_ARGS__); \
-    exit(1);
-
-#define parser_token_error(p, t, s, ...)                                                                                               \
-    fprintf(stderr, "%s:%zu:%zu" TERM_RED TERM_BOLD " error: " TERM_RESET s "\n", t.pos.file_path, t.pos.row, t.pos.col, __VA_ARGS__); \
     exit(1);
 
 #define pwarning(p, s, ...)                                                                                                             \

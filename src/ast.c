@@ -25,9 +25,15 @@ AstNode_t *ast_new_node(Ast_t *ast, AstNode_t node)
     }
     ast->nodes[ast->nodes_count - 1] = node;
 
-    printf("creating %s\n", ast_kind_name(node.kind));
+    printf("creating %s: %.*s\n", ast_kind_name(node.kind), (int)node.len, node.text);
     switch (node.kind)
     {
+    case AST_FUNC_CALL:
+    {
+        // AstNode_t **temp = realloc(ast->percent_dvs, (ast->percent_dvs_len + 1) * sizeof(AstNode_t *));
+        return &ast->nodes[ast->nodes_count - 1];
+    }
+    break;
     case AST_PERCENT:
     {
         AstNode_t **temp = realloc(ast->percent_dvs, (ast->percent_dvs_len + 1) * sizeof(AstNode_t *));

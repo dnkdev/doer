@@ -1,4 +1,4 @@
 a := run b
-$(search "*.txt" "/")
+$(search    *.txt  "/")
 
 %0 %1 

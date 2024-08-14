@@ -78,7 +78,6 @@ typedef union
         char *name;
         struct AstNode_t **arguments;
         size_t arg_count;
-        struct AstNode_t **nodes;
 
     } AST_FUNC_DECL;
     struct AST_TASK
